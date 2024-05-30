@@ -1,4 +1,3 @@
-import LogoImage from "../assets/logo_dark_text.svg";
 import Typography from "@mui/material/Typography";
 import {Box, Grid} from "@mui/material";
 import HomePageBlock from "../components/HomePageBlock.tsx";
@@ -18,9 +17,7 @@ function Home() {
         <>
             <PageBody>
                 <Box className="mb-5">
-                    <img src={LogoImage} style={{height: "5rem"}} alt="Komoplane"
-                         className="pb-2"/>
-
+                    <p className="font-extrabold text-3xl font-serif">SkyCluster</p>
                     <Typography variant="subtitle2">Eases understanding and troubleshooting of your custom control
                         plane.</Typography>
                 </Box>
