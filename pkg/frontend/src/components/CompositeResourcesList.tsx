@@ -1,4 +1,5 @@
-import {Card, CardContent, Grid} from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import {Card, CardContent, Grid, Accordion, AccordionSummary, AccordionDetails, List, TextField} from '@mui/material';
 import {CompositeResource, CompositeResourceExtended, ItemList, K8sReference, K8sResource} from "../types.ts";
 import Typography from "@mui/material/Typography";
 import ReadySynced from "./ReadySynced.tsx";
@@ -98,17 +99,41 @@ export default function CompositeResourcesList({items}: ItemListProps) {
         )
     }
 
+    // Define groupedItems
+    const groupedItems: { [kind: string]: CompositeResource[] } = {};
+    items.items.forEach((item) => {
+        if (!groupedItems[item.kind]) {
+            groupedItems[item.kind] = [];
+        }
+        groupedItems[item.kind].push(item);
+    });
+
     return (
         <>
-            <Grid container spacing={2}>
-                {items?.items?.map((item: CompositeResource) => (
-                    <ListItem item={item} key={item.metadata.name} onItemClick={onItemClick}/>
-                ))}
-            </Grid>
-            <InfoDrawer key={focused.metadata.name}
-                        isOpen={isDrawerOpen} onClose={onClose} type="Composite Resource" title={title}>
-                <InfoTabs bridge={bridge} initial="relations"></InfoTabs>
-            </InfoDrawer>
+            {Object.entries(groupedItems).map(([kind, items]) => (
+                <Grid item mt-5 xs={12} md={12} key={kind} m={1}>
+                    <Accordion defaultExpanded>
+                    <AccordionSummary expandIcon={<ExpandMoreIcon/>}>
+                        <Typography variant="h6">{kind}</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <List>
+                            {items.map((item: CompositeResource) => (
+                                <ListItem item={item} key={item.metadata.name} onItemClick={onItemClick}/>
+                            ))}
+                        </List>
+                        <InfoDrawer
+                        key={focused.metadata.name}
+                        isOpen={isDrawerOpen}
+                        onClose={onClose}
+                        type="Composite Resource"
+                        title={title}>
+                            <InfoTabs bridge={bridge} initial="relations"></InfoTabs>
+                        </InfoDrawer>
+                    </AccordionDetails>
+                    </Accordion>
+                </Grid>
+            ))}
         </>
     );
 }
