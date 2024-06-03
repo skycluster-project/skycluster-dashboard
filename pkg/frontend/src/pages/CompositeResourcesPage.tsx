@@ -48,7 +48,10 @@ const CompositeResourcesPage = () => {
                     value={searchQuery} 
                     onChange={(e) => setSearchQuery(e.target.value)}/>
                 </Box>
-                <CompositeResourcesList items={filterItems(items, searchQuery)}></CompositeResourcesList>
+                <CompositeResourcesList items={
+                    // TODO: Fix the undefined filterItems return value
+                    filterItems(items, searchQuery).items.length > 0 ? filterItems(items, searchQuery) : items
+                }></CompositeResourcesList>
             </PageBody>
         </>
     );
