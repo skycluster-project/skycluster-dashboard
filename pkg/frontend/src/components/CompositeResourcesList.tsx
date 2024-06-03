@@ -1,5 +1,5 @@
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import {Card, CardContent, Grid, Accordion, AccordionSummary, AccordionDetails, List, Button} from '@mui/material';
+import {Card, CardContent, Grid, Accordion, AccordionSummary, AccordionDetails, List, Button, Box, Alert} from '@mui/material';
 import {CompositeResource, CompositeResourceExtended, ItemList, K8sReference, K8sResource} from "../types.ts";
 import Typography from "@mui/material/Typography";
 import ReadySynced from "./ReadySynced.tsx";
@@ -134,10 +134,38 @@ export default function CompositeResourcesList({items}: ItemListProps) {
                 <span className="mx-1"><Button variant="outlined" onClick={collapseAll}>Collapse All</Button></span>
             </div>
             {Object.entries(groupedItems).map(([kind, items]) => (
+                // show the number of items in each kind
+                
                 <Grid item xs={12} md={12} key={kind} m={1}>
                     <Accordion key={kind} expanded={expandedItems[kind] || false} onChange={() => handleAccordionChange(kind)}>
                     <AccordionSummary expandIcon={<ExpandMoreIcon/>}>
                         <Typography variant="h6">{kind}</Typography>
+                        <Box sx={{mx: 1}}>
+                            <Alert sx={{py: 0, 
+                                    '& > *': {
+                                        py: 0, // adjust the padding as needed
+                                    },}} 
+                                severity="success">
+                                Ready: {items.filter((item) => item.status?.conditions?.find((condition) => 
+                                    condition.status === "True" && condition.type === "Ready")).length}
+                            </Alert>
+                        </Box>
+                        {
+                        items.filter((item) => !item.status?.conditions?.find((condition) =>
+                            condition.status === "True" && condition.type === "Ready")).length > 0 ? (
+                            <Box sx={{mx: 1}}>
+                                <Alert sx={{py: 0.5, 
+                                        '& > *': {
+                                            py: 0, // adjust the padding as needed
+                                        },}} 
+                                    severity="error" color="warning">
+                                    Not Ready: {items.filter((item) => !item.status?.conditions?.find((condition) =>
+                                        condition.status === "True" && condition.type === "Ready")).length}
+                                </Alert>
+                            </Box>
+                            ) : null
+                        }
+                        
                     </AccordionSummary>
                     <AccordionDetails>
                         <List>
