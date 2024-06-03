@@ -1,4 +1,4 @@
-import {Alert, LinearProgress} from "@mui/material";
+import {Alert, Input, LinearProgress, Box} from "@mui/material";
 import apiClient from "../api.ts";
 import {useEffect, useState} from "react";
 import {CompositeResource, ItemList} from "../types.ts";
@@ -9,6 +9,7 @@ import PageBody from "../components/PageBody.tsx";
 const CompositeResourcesPage = () => {
     const [items, setItems] = useState<ItemList<CompositeResource> | null>(null);
     const [error, setError] = useState<object | null>(null);
+    const [searchQuery, setSearchQuery] = useState<string>('');
 
     useEffect(() => {
         apiClient.getCompositeResourcesList()
@@ -24,11 +25,30 @@ const CompositeResourcesPage = () => {
         return <LinearProgress/>;
     }
 
+    const filterItems = (items: ItemList<CompositeResource>, searchQuery: string) => {
+        if (searchQuery === '') {
+            return items;
+        }
+        return {
+            items: items.items.filter((item) => {
+                return item.metadata.name.includes(searchQuery);
+            }),
+        };
+    }
+
     return (
         <>
             <HeaderBar title="Composite Resources"/>
             <PageBody>
-                <CompositeResourcesList items={items}></CompositeResourcesList>
+                <Box m={1}>
+                    <Input 
+                    className="w-full" 
+                    type="text"
+                    placeholder="Search" 
+                    value={searchQuery} 
+                    onChange={(e) => setSearchQuery(e.target.value)}/>
+                </Box>
+                <CompositeResourcesList items={filterItems(items, searchQuery)}></CompositeResourcesList>
             </PageBody>
         </>
     );

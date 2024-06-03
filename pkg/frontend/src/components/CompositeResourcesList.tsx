@@ -19,7 +19,7 @@ type ItemProps = {
 
 function ListItem({item, onItemClick}: ItemProps) {
     return (
-        <Grid item xs={12} md={12} key={item.apiVersion + item.kind + item.metadata.name} onClick={() => {
+        <Grid item m={1} xs={12} md={12} key={item.apiVersion + item.kind + item.metadata.name} onClick={() => {
             onItemClick(item)
         }}>
             <Card variant="outlined" className="cursor-pointer">
@@ -111,7 +111,7 @@ export default function CompositeResourcesList({items}: ItemListProps) {
     return (
         <>
             {Object.entries(groupedItems).map(([kind, items]) => (
-                <Grid item mt-5 xs={12} md={12} key={kind} m={1}>
+                <Grid item xs={12} md={12} key={kind} m={1}>
                     <Accordion defaultExpanded>
                     <AccordionSummary expandIcon={<ExpandMoreIcon/>}>
                         <Typography variant="h6">{kind}</Typography>
