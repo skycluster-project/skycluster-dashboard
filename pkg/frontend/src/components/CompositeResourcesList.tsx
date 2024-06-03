@@ -1,5 +1,5 @@
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import {Card, CardContent, Grid, Accordion, AccordionSummary, AccordionDetails, List, TextField} from '@mui/material';
+import {Card, CardContent, Grid, Accordion, AccordionSummary, AccordionDetails, List, Button} from '@mui/material';
 import {CompositeResource, CompositeResourceExtended, ItemList, K8sReference, K8sResource} from "../types.ts";
 import Typography from "@mui/material/Typography";
 import ReadySynced from "./ReadySynced.tsx";
@@ -108,11 +108,34 @@ export default function CompositeResourcesList({items}: ItemListProps) {
         groupedItems[item.kind].push(item);
     });
 
+    const collapseAll = () => {
+        setExpandedItems({});
+    };
+
+    const expandAll = () => {
+        const expandedState = Object.keys(groupedItems).reduce((acc: Record<string, boolean>, kind: string) => {
+          acc[kind] = true;
+          return acc;
+        }, {});
+        setExpandedItems(expandedState);
+      };
+    const [expandedItems, setExpandedItems] = useState<{[kind: string]: boolean}>({});
+    const handleAccordionChange = (kind: string) => {
+        setExpandedItems((prevState) => ({
+          ...prevState,
+          [kind]: !prevState[kind],
+        }));
+      };
+
     return (
         <>
+            <div className="m-2">
+                <span className="mx-1"><Button variant="outlined" onClick={expandAll}>Expand All</Button></span>
+                <span className="mx-1"><Button variant="outlined" onClick={collapseAll}>Collapse All</Button></span>
+            </div>
             {Object.entries(groupedItems).map(([kind, items]) => (
                 <Grid item xs={12} md={12} key={kind} m={1}>
-                    <Accordion defaultExpanded>
+                    <Accordion key={kind} expanded={expandedItems[kind] || false} onChange={() => handleAccordionChange(kind)}>
                     <AccordionSummary expandIcon={<ExpandMoreIcon/>}>
                         <Typography variant="h6">{kind}</Typography>
                     </AccordionSummary>
