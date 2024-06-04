@@ -1,4 +1,4 @@
-import {Alert, LinearProgress} from "@mui/material";
+import {Alert, LinearProgress, Box, Input} from "@mui/material";
 import apiClient from "../api.ts";
 import {useEffect, useState} from "react";
 import {ItemList, ManagedResource} from "../types.ts";
@@ -9,6 +9,7 @@ import PageBody from "../components/PageBody.tsx";
 const ManagedResourcesPage = () => {
     const [items, setItems] = useState<ItemList<ManagedResource> | null>(null);
     const [error, setError] = useState<object | null>(null);
+    const [searchQuery, setSearchQuery] = useState<string>('');
 
     useEffect(() => {
         apiClient.getManagedResourcesList()
@@ -24,11 +25,32 @@ const ManagedResourcesPage = () => {
         return <LinearProgress/>;
     }
 
+    const filterItems = (items: ItemList<ManagedResource>, searchQuery: string) => {
+        if (searchQuery === '') {
+            return items;
+        }
+        return {
+            items: items.items.filter((item) => {
+                return item.metadata.name.includes(searchQuery);
+            }),
+        };
+    }
+
     return (
         <>
             <HeaderBar title="Managed Resources"/>
             <PageBody>
-                <ManagedResourcesList items={items}></ManagedResourcesList>
+            <Box m={1}>
+                <Input 
+                    className="w-full" 
+                    type="text"
+                    placeholder="Search" 
+                    value={searchQuery} 
+                    onChange={(e) => setSearchQuery(e.target.value)}/>
+                </Box>
+                <ManagedResourcesList items={
+                    filterItems(items, searchQuery).items.length > 0 ? filterItems(items, searchQuery) : items
+                }></ManagedResourcesList>
             </PageBody>
         </>
     );
