@@ -1,5 +1,7 @@
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import {Card, CardActionArea, CardContent, Grid, Button, List, Accordion, AccordionSummary, Box, Alert, AccordionDetails} from '@mui/material';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import InfoIcon from '@mui/icons-material/Info';
+import {Card, Chip, CardContent, Grid, Button, List, Accordion, AccordionSummary, Box, Alert, AccordionDetails} from '@mui/material';
 import {ItemList, K8sResource, ManagedResource, ManagedResourceExtended} from "../types.ts";
 import Typography from "@mui/material/Typography";
 import ReadySynced from "./ReadySynced.tsx";
@@ -18,20 +20,27 @@ type ItemProps = {
 };
 
 function ListItem({item, onItemClick}: ItemProps) {
+    const copyToClipboard = (name: string) => {
+        navigator.clipboard.writeText(name).then(() => {}, (err) => {
+            console.error('Could not copy text: ', err);
+        });
+    };
     return (
-        <Grid item xs={12} md={12} key={item.metadata.name} onClick={() => {
-            onItemClick(item)
-        }}>
-            <Card variant="outlined" className="cursor-pointer">
-                <CardActionArea>
-                    <CardContent>
+        <Grid item xs={12} md={12} key={item.metadata.name}>
+            <Card variant="outlined">
+                <CardContent>
+                    <Box sx={{display: 'flex', flexDirection: 'row', p: 0, m: 0}}>
                         <Typography variant="h6">{item.metadata.name}</Typography>
-                        <Typography variant="body1">Kind: {item.kind}</Typography>
-                        <Typography variant="body1">Group: {item.apiVersion}</Typography>
-                        <Typography variant="body1">Provider Config: {item.spec.providerConfigRef?.name}</Typography>
-                        <ReadySynced status={item.status?item.status:{}}></ReadySynced>
-                    </CardContent>
-                </CardActionArea>
+                        <Chip sx={{ p: 0, mt: 0.5, ml: 1, '& > *': {ml: '8px !important', mr: '-8px !important',}, }}
+                            icon={<ContentCopyIcon />} size="small" variant="outlined" color="secondary"
+                            onClick={() => copyToClipboard(item.kind + " " + item.metadata.name)} />
+                    </Box>
+                    <Typography variant="body1">Kind: {item.kind}</Typography>
+                    <Typography variant="body1">Group: {item.apiVersion}</Typography>
+                    <Typography variant="body1">Provider Config: {item.spec.providerConfigRef?.name}</Typography>
+                    <ReadySynced status={item.status?item.status:{}}></ReadySynced>
+                    <Chip icon={<InfoIcon />} label="Details" variant="outlined" color="info" onClick={() => onItemClick(item)} />
+                </CardContent>
             </Card>
         </Grid>
     );
@@ -167,18 +176,18 @@ export default function ManagedResourcesList({items}: ItemListProps) {
                                     <ListItem item={item} key={item.metadata.name} onItemClick={onItemClick}/>
                                 ))}
                             </List>
-                            <InfoDrawer
-                                key={focused.metadata.name}
-                                isOpen={isDrawerOpen}
-                                onClose={onClose}
-                                type="Managed Resource"
-                                title={title}>
-                                <InfoTabs bridge={bridge} initial="relations"></InfoTabs>
-                            </InfoDrawer>
                         </AccordionDetails>
                     </Accordion>
                 </Grid>
             ))}
+            <InfoDrawer
+                key={focused.metadata.name}
+                isOpen={isDrawerOpen}
+                onClose={onClose}
+                type="Managed Resource"
+                title={title}>
+                <InfoTabs bridge={bridge} initial="relations"></InfoTabs>
+            </InfoDrawer>
         </>
     );
 }

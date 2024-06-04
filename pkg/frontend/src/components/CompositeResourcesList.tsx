@@ -1,5 +1,7 @@
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import {Card, CardContent, Grid, Accordion, AccordionSummary, AccordionDetails, List, Button, Box, Alert} from '@mui/material';
+import ContentCopyIcon from '@mui/icons-material/ContentCopy';
+import InfoIcon from '@mui/icons-material/Info';
+import {Card, Chip, CardContent, Grid, Accordion, AccordionSummary, AccordionDetails, List, Button, Box, Alert} from '@mui/material';
 import {CompositeResource, CompositeResourceExtended, ItemList, K8sReference, K8sResource} from "../types.ts";
 import Typography from "@mui/material/Typography";
 import ReadySynced from "./ReadySynced.tsx";
@@ -18,18 +20,27 @@ type ItemProps = {
 };
 
 function ListItem({item, onItemClick}: ItemProps) {
+    const copyToClipboard = (name: string) => {
+        navigator.clipboard.writeText(name).then(() => {}, (err) => {
+            console.error('Could not copy text: ', err);
+        });
+    };
     return (
-        <Grid item m={1} xs={12} md={12} key={item.apiVersion + item.kind + item.metadata.name} onClick={() => {
-            onItemClick(item)
-        }}>
-            <Card variant="outlined" className="cursor-pointer">
+        <Grid item m={1} xs={12} md={12} key={item.apiVersion + item.kind + item.metadata.name}>
+            <Card variant="outlined">
                 <CardContent>
-                    <Typography variant="h6">{item.metadata.name}</Typography>
+                    <Box sx={{display: 'flex', flexDirection: 'row', p: 0, m: 0}}>
+                        <Typography variant="h6">{item.metadata.name}</Typography>
+                        <Chip sx={{ p: 0, mt: 0.5, ml: 1, '& > *': {ml: '8px !important', mr: '-8px !important',}, }}
+                            icon={<ContentCopyIcon />} size="small" variant="outlined" color="secondary"
+                            onClick={() => copyToClipboard(item.kind + " " + item.metadata.name)} />
+                    </Box>
                     <Typography variant="body1">Kind: {item.kind}</Typography>
                     <Typography variant="body1">Group: {item.apiVersion}</Typography>
                     <Typography variant="body1">Composition: {item.spec.compositionRef?.name}</Typography>
                     <Typography variant="body1">Composed resources: {item.spec.resourceRefs?.length}</Typography>
                     <ReadySynced status={item.status ? item.status : {}}></ReadySynced>
+                    <Chip icon={<InfoIcon />} label="Details" variant="outlined" color="info" onClick={() => onItemClick(item)} />
                 </CardContent>
             </Card>
         </Grid>
@@ -43,49 +54,45 @@ type ItemListProps = {
 export default function CompositeResourcesList({items}: ItemListProps) {
     const {name: focusedName} = useParams();
     const [isDrawerOpen, setDrawerOpen] = useState<boolean>(focusedName != undefined);
-    const nullFocused = {metadata: {name: ""}, kind: "", apiVersion: ""};
-    const [focused, setFocused] = useState<K8sResource>(nullFocused);
+    const [focused, setFocused] = useState<K8sResource>({metadata: {name: ""}, kind: "", apiVersion: ""});
     const navigate = useNavigate();
 
     const onClose = () => {
         setDrawerOpen(false)
-        setFocused(nullFocused)
-        navigate("/composite")
+        navigate("/managed", {state: focused})
     }
 
     const onItemClick = (item: K8sResource) => {
         setFocused(item)
         setDrawerOpen(true)
         navigate(
-            "./" + item.apiVersion + "/" + item.kind + "/" + item.metadata.name
+            "./" + item.apiVersion + "/" + item.kind + "/" + item.metadata.name,
+            {state: item}
         );
     }
 
-    if (focusedName && focused.metadata.name != focusedName) {
+    if (!focused.metadata.name && focusedName) {
         items?.items?.forEach((item) => {
             if (focusedName == item.metadata.name) {
-                logger.log("== SET FOCUSED", item)
                 setFocused(item)
             }
         })
     }
 
     const bridge = new ItemContext()
-    if (isDrawerOpen) {
-        bridge.setCurrent(focused)
-        bridge.getGraph = (setter, setError) => {
-            const setData = (res: CompositeResourceExtended) => {
-                logger.log("recv from API", res)
-                const data = xrToGraph(res, navigate)
-                logger.log("set graph data", data.nodes)
-                setter(data)
-            }
-
-            const [group, version] = focused.apiVersion.split("/")
-            apiClient.getCompositeResource(group, version, focused.kind, focused.metadata.name)
-                .then((data) => setData(data))
-                .catch((err) => setError(err))
+    bridge.setCurrent(focused)
+    bridge.getGraph = (setter, setError) => {
+        const setData = (res: CompositeResourceExtended) => {
+            logger.log("recv from API", res)
+            const data = xrToGraph(res, navigate)
+            logger.log("set graph data", data.nodes)
+            setter(data)
         }
+
+        const [group, version] = focused.apiVersion.split("/")
+        apiClient.getCompositeResource(group, version, focused.kind, focused.metadata.name)
+            .then((data) => setData(data))
+            .catch((err) => setError(err))
     }
 
     const title = (<>
@@ -126,7 +133,7 @@ export default function CompositeResourcesList({items}: ItemListProps) {
           [kind]: !prevState[kind],
         }));
       };
-
+    
     return (
         <>
             <div className="m-2">
@@ -134,8 +141,6 @@ export default function CompositeResourcesList({items}: ItemListProps) {
                 <span className="mx-1"><Button variant="outlined" onClick={collapseAll}>Collapse All</Button></span>
             </div>
             {Object.entries(groupedItems).map(([kind, items]) => (
-                // show the number of items in each kind
-                
                 <Grid item xs={12} md={12} key={kind} m={1}>
                     <Accordion key={kind} expanded={expandedItems[kind] || false} onChange={() => handleAccordionChange(kind)}>
                     <AccordionSummary expandIcon={<ExpandMoreIcon/>}>
@@ -173,18 +178,18 @@ export default function CompositeResourcesList({items}: ItemListProps) {
                                 <ListItem item={item} key={item.metadata.name} onItemClick={onItemClick}/>
                             ))}
                         </List>
-                        <InfoDrawer
-                        key={focused.metadata.name}
-                        isOpen={isDrawerOpen}
-                        onClose={onClose}
-                        type="Composite Resource"
-                        title={title}>
-                            <InfoTabs bridge={bridge} initial="relations"></InfoTabs>
-                        </InfoDrawer>
                     </AccordionDetails>
                     </Accordion>
                 </Grid>
             ))}
+            <InfoDrawer
+                key={focused.metadata.name}
+                isOpen={isDrawerOpen}
+                onClose={onClose}
+                type="Composite Resource"
+                title={title}>
+                    <InfoTabs bridge={bridge} initial="relations"></InfoTabs>
+            </InfoDrawer>
         </>
     );
 }
