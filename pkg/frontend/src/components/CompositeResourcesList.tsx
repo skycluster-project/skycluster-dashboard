@@ -140,10 +140,10 @@ export default function CompositeResourcesList({items}: ItemListProps) {
                     <Accordion key={kind} expanded={expandedItems[kind] || false} onChange={() => handleAccordionChange(kind)}>
                     <AccordionSummary expandIcon={<ExpandMoreIcon/>}>
                         <Typography variant="h6">{kind}</Typography>
-                        <Box sx={{mx: 1}}>
+                        <Box sx={{mx: 0.5}}>
                             <Alert sx={{py: 0, 
                                     '& > *': {
-                                        py: 0, // adjust the padding as needed
+                                        py: '4px !important',
                                     },}} 
                                 severity="success">
                                 Ready: {items.filter((item) => item.status?.conditions?.find((condition) => 
@@ -153,10 +153,10 @@ export default function CompositeResourcesList({items}: ItemListProps) {
                         {
                         items.filter((item) => !item.status?.conditions?.find((condition) =>
                             condition.status === "True" && condition.type === "Ready")).length > 0 ? (
-                            <Box sx={{mx: 1}}>
-                                <Alert sx={{py: 0.5, 
+                            <Box sx={{mx: 0.5}}>
+                                <Alert sx={{py: 0, 
                                         '& > *': {
-                                            py: 0, // adjust the padding as needed
+                                            py: '4px !important', 
                                         },}} 
                                     severity="error" color="warning">
                                     Not Ready: {items.filter((item) => !item.status?.conditions?.find((condition) =>
