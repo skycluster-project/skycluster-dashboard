@@ -26,7 +26,7 @@ function ListItem({item, onItemClick}: ItemProps) {
         });
     };
     return (
-        <Grid item xs={12} md={12} key={item.metadata.name}>
+        <Grid item sx={{mb: 1}} xs={12} md={12} key={item.metadata.name}>
             <Card variant="outlined">
                 <CardContent>
                     <Box sx={{display: 'flex', flexDirection: 'row', p: 0, m: 0}}>
@@ -107,12 +107,13 @@ export default function ManagedResourcesList({items}: ItemListProps) {
     }
 
     // Define groupedItems
-    const groupedItems: { [kind: string]: ManagedResource[] } = {};
+    const groupedItems: { [itemIndex: string]: ManagedResource[] } = {};
     items.items.forEach((item) => {
-        if (!groupedItems[item.kind]) {
-            groupedItems[item.kind] = [];
+        const itemIndex = item.apiVersion.split('.')[0] + "." + item.apiVersion.split('.')[1] + "." + item.kind
+        if (!groupedItems[itemIndex]) {
+            groupedItems[itemIndex] = [];
         }
-        groupedItems[item.kind].push(item);
+        groupedItems[itemIndex].push(item);
     });
 
     const getApiVersion = (items: ManagedResource[]): string => {
@@ -132,19 +133,19 @@ export default function ManagedResourcesList({items}: ItemListProps) {
     };
 
     const expandAll = () => {
-        const expandedState = Object.keys(groupedItems).reduce((acc: Record<string, boolean>, kind: string) => {
-          acc[kind] = true;
-          return acc;
+        const expandedState = Object.keys(groupedItems).reduce((acc: Record<string, boolean>, itemIndex: string) => {
+            acc[itemIndex] = true;
+            return acc;
         }, {});
         setExpandedItems(expandedState);
-      };
-    const [expandedItems, setExpandedItems] = useState<{[kind: string]: boolean}>({});
-    const handleAccordionChange = (kind: string) => {
+    };
+    const [expandedItems, setExpandedItems] = useState<{[itemIndex: string]: boolean}>({});
+    const handleAccordionChange = (itemIndex: string) => {
         setExpandedItems((prevState) => ({
-          ...prevState,
-          [kind]: !prevState[kind],
+            ...prevState,
+            [itemIndex]: !prevState[itemIndex],
         }));
-      };
+    };
 
     return (
         <>
@@ -152,13 +153,13 @@ export default function ManagedResourcesList({items}: ItemListProps) {
                 <span className="mx-1"><Button variant="outlined" onClick={expandAll}>Expand All</Button></span>
                 <span className="mx-1"><Button variant="outlined" onClick={collapseAll}>Collapse All</Button></span>
             </div>
-            {Object.entries(groupedItems).map(([kind, items]) => (
-                <Grid item xs={12} md={12} key={kind} m={1}>
-                    <Accordion key={kind} expanded={expandedItems[kind] || false} onChange={() => handleAccordionChange(kind)}>
+            {Object.entries(groupedItems).map(([itemIndex, items]) => (
+                <Grid item xs={12} md={12} key={itemIndex} m={1}>
+                    <Accordion key={itemIndex} expanded={expandedItems[itemIndex] || false} onChange={() => handleAccordionChange(itemIndex)}>
                         <AccordionSummary expandIcon={<ExpandMoreIcon/>}>
                             <Stack direction="row" spacing={1}>
                                 <Typography sx={{pt: '3px'}} variant="overline">{getApiVersion(items) + ": "}</Typography>
-                                <Typography variant="h6">{kind}</Typography>
+                                <Typography variant="h6">{itemIndex.split(".")[2]}</Typography>
                                 <Box sx={{mx: 0.5}}>
                                     <Alert sx={{py: 0, 
                                             '& > *': {
