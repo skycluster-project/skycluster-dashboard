@@ -1,7 +1,7 @@
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import InfoIcon from '@mui/icons-material/Info';
-import {Card, Chip, CardContent, Grid, Accordion, AccordionSummary, AccordionDetails, List, Button, Box, Alert} from '@mui/material';
+import {Stack, Divider, Card, Chip, CardContent, Grid, Accordion, AccordionSummary, AccordionDetails, List, Button, Box, Alert} from '@mui/material';
 import {CompositeResource, CompositeResourceExtended, ItemList, K8sReference, K8sResource} from "../types.ts";
 import Typography from "@mui/material/Typography";
 import ReadySynced from "./ReadySynced.tsx";
@@ -115,6 +115,18 @@ export default function CompositeResourcesList({items}: ItemListProps) {
         groupedItems[item.kind].push(item);
     });
 
+    const getApiVersion = (items: CompositeResource[]): string => {
+        if (items.length === 0) {
+          return "Undefined api version!"; // or handle empty object case appropriately
+        }
+      
+        const apiWords = items[0].apiVersion.split('.');
+        if (apiWords.length < 2) { 
+            return "Undefined api version!";
+        }
+        return apiWords[0] + '.' + apiWords[1];
+    };
+
     const collapseAll = () => {
         setExpandedItems({});
     };
@@ -144,33 +156,35 @@ export default function CompositeResourcesList({items}: ItemListProps) {
                 <Grid item xs={12} md={12} key={kind} m={1}>
                     <Accordion key={kind} expanded={expandedItems[kind] || false} onChange={() => handleAccordionChange(kind)}>
                     <AccordionSummary expandIcon={<ExpandMoreIcon/>}>
-                        <Typography variant="h6">{kind}</Typography>
-                        <Box sx={{mx: 0.5}}>
-                            <Alert sx={{py: 0, 
-                                    '& > *': {
-                                        py: '4px !important',
-                                    },}} 
-                                severity="success">
-                                Ready: {items.filter((item) => item.status?.conditions?.find((condition) => 
-                                    condition.status === "True" && condition.type === "Ready")).length}
-                            </Alert>
-                        </Box>
-                        {
-                        items.filter((item) => !item.status?.conditions?.find((condition) =>
-                            condition.status === "True" && condition.type === "Ready")).length > 0 ? (
-                            <Box sx={{mx: 0.5}}>
-                                <Alert sx={{py: 0, 
-                                        '& > *': {
-                                            py: '4px !important', 
-                                        },}} 
-                                    severity="error" color="warning">
-                                    Not Ready: {items.filter((item) => !item.status?.conditions?.find((condition) =>
-                                        condition.status === "True" && condition.type === "Ready")).length}
-                                </Alert>
-                            </Box>
-                            ) : null
-                        }
-                        
+                        <Stack sx={{mt: 0.5}} direction="row" spacing={1}>
+                            <Typography sx={{pt: '3px'}} variant="overline">{getApiVersion(items)+ ": "}</Typography>
+                            <Typography variant="h6">{kind}</Typography>
+                                <Box sx={{mx: 0.5}}>
+                                    <Alert sx={{py: 0, 
+                                            '& > *': {
+                                                py: '4px !important',
+                                            },}} 
+                                        severity="success">
+                                        Ready: {items.filter((item) => item.status?.conditions?.find((condition) => 
+                                            condition.status === "True" && condition.type === "Ready")).length}
+                                    </Alert>
+                                </Box>
+                                {
+                                items.filter((item) => !item.status?.conditions?.find((condition) =>
+                                    condition.status === "True" && condition.type === "Ready")).length > 0 ? (
+                                    <Box sx={{mx: 0.5}}>
+                                        <Alert sx={{py: 0, 
+                                                '& > *': {
+                                                    py: '4px !important', 
+                                                },}} 
+                                            severity="error" color="warning">
+                                            Not Ready: {items.filter((item) => !item.status?.conditions?.find((condition) =>
+                                                condition.status === "True" && condition.type === "Ready")).length}
+                                        </Alert>
+                                    </Box>
+                                    ) : null
+                                }
+                        </Stack>
                     </AccordionSummary>
                     <AccordionDetails>
                         <List>
