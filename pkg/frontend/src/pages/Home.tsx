@@ -18,8 +18,7 @@ function Home() {
             <PageBody>
                 <Box className="mb-5">
                     <p className="font-extrabold text-3xl font-serif">SkyCluster</p>
-                    <Typography variant="subtitle2">Eases understanding and troubleshooting of your custom control
-                        plane.</Typography>
+                    <Typography variant="subtitle2">Any Service, Anywhere.</Typography>
                 </Box>
                 <Grid container spacing={5} alignItems="stretch">
                     <Grid item md={4}>

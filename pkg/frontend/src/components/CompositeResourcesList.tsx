@@ -1,7 +1,8 @@
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import InfoIcon from '@mui/icons-material/Info';
-import {Stack, Divider, Card, Chip, CardContent, Grid, Accordion, AccordionSummary, AccordionDetails, List, Button, Box, Alert} from '@mui/material';
+import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import {Stack, Card, Chip, CardContent, Grid, Accordion, AccordionSummary, AccordionDetails, List, Button, Box, Alert} from '@mui/material';
 import {CompositeResource, CompositeResourceExtended, ItemList, K8sReference, K8sResource} from "../types.ts";
 import Typography from "@mui/material/Typography";
 import ReadySynced from "./ReadySynced.tsx";
@@ -32,8 +33,14 @@ function ListItem({item, onItemClick}: ItemProps) {
                     <Box sx={{display: 'flex', flexDirection: 'row', p: 0, m: 0}}>
                         <Typography variant="h6">{item.metadata.name}</Typography>
                         <Chip sx={{ p: 0, mt: 0.5, ml: 1, '& > *': {ml: '8px !important', mr: '-8px !important',}, }}
-                            icon={<ContentCopyIcon />} size="small" variant="outlined" color="secondary"
-                            onClick={() => copyToClipboard(item.kind + " " + item.metadata.name)} />
+                            icon={<InfoIcon />} size="small" variant="outlined" color="primary"
+                            onClick={() => copyToClipboard("kubectl get " + item.kind + " " + item.metadata.name)} />
+                        <Chip sx={{ p: 0, mt: 0.5, ml: 1, '& > *': {ml: '8px !important', mr: '-8px !important',}, }}
+                            icon={<HelpOutlineIcon />} size="small" variant="outlined" color="secondary"
+                            onClick={() => copyToClipboard("kubectl describe " + item.kind + " " + item.metadata.name)} />
+                        <Chip sx={{ p: 0, mt: 0.5, ml: 1, '& > *': {ml: '8px !important', mr: '-8px !important',}, }}
+                            icon={<DeleteForeverIcon />} size="small" variant="outlined" color="error"
+                            onClick={() => copyToClipboard("kubectl delete " + item.kind + " " + item.metadata.name)} />
                     </Box>
                     <Typography variant="body1">Kind: {item.kind}</Typography>
                     <Typography variant="body1">Group: {item.apiVersion}</Typography>
@@ -181,6 +188,21 @@ export default function CompositeResourcesList({items}: ItemListProps) {
                                             severity="error" color="warning">
                                             Not Ready: {items.filter((item) => !item.status?.conditions?.find((condition) =>
                                                 condition.status === "True" && condition.type === "Ready")).length}
+                                        </Alert>
+                                    </Box>
+                                    ) : null
+                                }
+                                {
+                                items.filter((item) => !item.status?.conditions?.find((condition) =>
+                                    condition.status === "True" && condition.type === "Synced")).length > 0 ? (
+                                    <Box sx={{mx: 0.5}}>
+                                        <Alert sx={{py: 0, 
+                                                '& > *': {
+                                                    py: '4px !important', 
+                                                },}} 
+                                            severity="info" color="info">
+                                            Not Synced: {items.filter((item) => !item.status?.conditions?.find((condition) =>
+                                                condition.status === "True" && condition.type === "Sync")).length}
                                         </Alert>
                                     </Box>
                                     ) : null
