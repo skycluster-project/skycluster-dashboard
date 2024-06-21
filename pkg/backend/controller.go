@@ -398,6 +398,38 @@ func (c *Controller) allMRDs(provCRDs CRDMap) []*v1.CustomResourceDefinition {
 	return res
 }
 
+func (c *Controller) GetManagedsNoCaching(ec echo.Context) error {
+	// return all MRDs without caching
+	res := &unstructured.UnstructuredList{Items: []unstructured.Unstructured{}}
+	var MRDs []*v1.CustomResourceDefinition
+
+	provCRDs, err := c.LoadCRDs(ec)
+	if err != nil {
+		return err
+	}
+
+	MRDs = c.allMRDs(provCRDs)
+	if err != nil {
+		return err
+	}
+
+	for _, mrd := range MRDs {
+		gvk := schema.GroupVersionKind{
+			Group:   mrd.Spec.Group,
+			Version: mrd.Spec.Versions[0].Name,
+			Kind:    mrd.Spec.Names.Plural,
+		}
+		items, err := c.CRDs.List(c.ctx, gvk)
+		if err != nil {
+			log.Warnf("Failed to list CRD: %v: %v", mrd.GroupVersionKind(), err)
+			continue
+		}
+		res.Items = append(res.Items, items.Items...)
+	}
+
+	return ec.JSONPretty(http.StatusOK, res, "  ")
+}
+
 func (c *Controller) GetManaged(ec echo.Context) error {
 	gvk := schema.GroupVersionKind{
 		Group:   ec.Param("group"),

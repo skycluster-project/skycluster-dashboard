@@ -1,13 +1,14 @@
 package backend
 
 import (
+	"net/http"
+	"os"
+	"time"
+
 	"github.com/komodorio/komoplane/pkg/frontend"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	log "github.com/sirupsen/logrus"
-	"net/http"
-	"os"
-	"time"
 )
 
 func NewRouter(data *Controller, debug bool) *echo.Echo {
@@ -107,7 +108,8 @@ func configureRoutes(data *Controller, eng *echo.Echo) {
 	claims.GET("/:group/:version/:kind/:namespace/:name", data.GetClaim)
 
 	managed := api.Group("/managed")
-	managed.GET("", data.GetManageds)
+	managed.GET("", data.GetManagedsNoCaching)
+	// managed.GET("", data.GetManageds)
 	managed.GET("/:group/:version/:kind/:name", data.GetManaged)
 
 	composite := api.Group("/composite")
