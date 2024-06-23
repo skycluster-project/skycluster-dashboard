@@ -66,7 +66,7 @@ export default function CompositeResourcesList({items}: ItemListProps) {
 
     const onClose = () => {
         setDrawerOpen(false)
-        navigate("/managed", {state: focused})
+        navigate("/composite", {state: focused})
     }
 
     const onItemClick = (item: K8sResource) => {
