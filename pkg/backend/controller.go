@@ -65,6 +65,11 @@ type ManagedUnstructured struct { // no dedicated type for it in base CP, just r
 	uxres.Unstructured
 }
 
+var (
+	// TODO: this is manually hardcoded, should be generated from the CRD
+	ProviderConfigRemoteExecAPIVersion = "remoteexec.crossplane.io"
+)
+
 type CRDMap = map[string][]*v1.CustomResourceDefinition
 
 func NewManagedUnstructured() *ManagedUnstructured {
@@ -386,7 +391,7 @@ func (c *Controller) allMRDs(provCRDs CRDMap) []*v1.CustomResourceDefinition {
 	res := []*v1.CustomResourceDefinition{}
 	for _, crds := range provCRDs {
 		for _, mrd := range crds {
-			if mrd.Spec.Names.Kind == cpk8s.ProviderConfigKind || mrd.Spec.Names.Kind == cpk8s.ProviderConfigUsageKind {
+			if (mrd.Spec.Names.Kind == cpk8s.ProviderConfigKind || mrd.Spec.Names.Kind == cpk8s.ProviderConfigUsageKind) && mrd.Spec.Group != ProviderConfigRemoteExecAPIVersion {
 				log.Debugf("Skipping %s/%s from listing of all MRs", mrd.Spec.Group, mrd.Spec.Names.Kind)
 				continue
 			}

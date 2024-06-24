@@ -201,35 +201,40 @@ export default function ManagedResourcesList({items}: ItemListProps) {
                                     </Alert>
                                 </Box>
                                 {
-                                items.filter((item) => !item.status?.conditions?.find((condition) =>
-                                    condition.status === "True" && condition.type === "Ready")).length > 0 ? (
-                                    <Box sx={{mx: 0.5}}>
-                                        <Alert sx={{py: 0, 
-                                                '& > *': {
-                                                    py: '4px !important', 
-                                                },}} 
-                                            severity="error" color="warning">
-                                            Not Ready: {items.filter((item) => !item.status?.conditions?.find((condition) =>
-                                                condition.status === "True" && condition.type === "Ready")).length}
-                                        </Alert>
-                                    </Box>
-                                    ) : null
-                                }
-                                {
-                                items.filter((item) => !item.status?.conditions?.find((condition) =>
-                                    condition.status === "True" && condition.type === "Synced")).length > 0 ? (
-                                    <Box sx={{mx: 0.5}}>
-                                        <Alert sx={{py: 0, 
-                                                '& > *': {
-                                                    py: '4px !important', 
-                                                },}} 
-                                            severity="info" color="info">
-                                            Not Synced: {items.filter((item) => !item.status?.conditions?.find((condition) =>
-                                                condition.status === "True" && condition.type === "Sync")).length}
-                                        </Alert>
-                                    </Box>
-                                    ) : null
-                                }
+                                    items.some(item => item.kind === "ProviderConfig") ? null : (
+                                        <>
+                                        {
+                                            items.filter((item) => !item.status?.conditions?.find((condition) =>
+                                                condition.status === "True" && condition.type === "Ready")).length > 0 ? (
+                                                <Box sx={{mx: 0.5}}>
+                                                    <Alert sx={{py: 0, 
+                                                            '& > *': {
+                                                                py: '4px !important', 
+                                                            },}} 
+                                                        severity="error" color="warning">
+                                                        Not Ready: {items.filter((item) => !item.status?.conditions?.find((condition) =>
+                                                            condition.status === "True" && condition.type === "Ready")).length}
+                                                    </Alert>
+                                                </Box>
+                                                ) : null
+                                        }
+                                        {
+                                            items.filter((item) => !item.status?.conditions?.find((condition) =>
+                                                condition.status === "True" && condition.type === "Synced")).length > 0 ? (
+                                                <Box sx={{mx: 0.5}}>
+                                                    <Alert sx={{py: 0, 
+                                                            '& > *': {
+                                                                py: '4px !important', 
+                                                            },}} 
+                                                        severity="info" color="info">
+                                                        Not Synced: {items.filter((item) => !item.status?.conditions?.find((condition) =>
+                                                            condition.status === "True" && condition.type === "Sync")).length}
+                                                    </Alert>
+                                                </Box>
+                                                ) : null
+                                        }
+                                        </>
+                                )}
                             </Stack>
                         </AccordionSummary>
                         <AccordionDetails>
