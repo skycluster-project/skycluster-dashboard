@@ -1,12 +1,9 @@
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import InfoIcon from '@mui/icons-material/Info';
-import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
-import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
-import {Stack, Card, Chip, CardContent, Grid, Accordion, AccordionSummary, AccordionDetails, List, Button, Box, Alert} from '@mui/material';
+import { Info as InfoIcon, ExpandMore as ExpandMoreIcon, HelpOutline as HelpOutlineIcon, DeleteForever as DeleteForeverIcon, Refresh as RefreshIcon } from '@mui/icons-material';
+import {CircularProgress, Stack, Card, Chip, CardContent, Grid, Accordion, AccordionSummary, AccordionDetails, List, Button, Box, Alert} from '@mui/material';
 import {CompositeResource, CompositeResourceExtended, ItemList, K8sReference, K8sResource} from "../types.ts";
 import Typography from "@mui/material/Typography";
 import ReadySynced from "./ReadySynced.tsx";
-import {useState} from "react";
+import { useState, useEffect } from "react";
 import InfoTabs, {ItemContext} from "./InfoTabs.tsx";
 import ConditionChips from "./ConditionChips.tsx";
 import InfoDrawer from "./InfoDrawer.tsx";
@@ -20,18 +17,41 @@ type ItemProps = {
     onItemClick: { (item: CompositeResource): void }
 };
 
-function ListItem({item, onItemClick}: ItemProps) {
+function ListItem({item: initialItem, onItemClick}: ItemProps) {
+    const [item, setItem] = useState<CompositeResource>(initialItem);
     const copyToClipboard = (name: string) => {
         navigator.clipboard.writeText(name).then(() => {}, (err) => {
             console.error('Could not copy text: ', err);
         });
     };
+
+    const [isLoading, setIsLoading] = useState<boolean>(false);
+    const refreshData = async () => {
+        setIsLoading(true);
+        try {
+            const refreshedData = await apiClient.getCompositeResource(
+                item.apiVersion.split('/')[0], item.apiVersion.split('/')[1], item.kind, item.metadata.name);
+            setItem(refreshedData);
+        } catch (error) {
+            console.error("Error refreshing data:", error);
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        // This effect will run when isLoading changes
+        // You can add additional logic here if needed
+    }, [isLoading]);
+
     return (
         <Grid item sx={{mb: 1}} m={1} xs={12} md={12} key={item.apiVersion + item.kind + item.metadata.name}>
             <Card variant="outlined">
                 <CardContent>
                     <Box sx={{display: 'flex', flexDirection: 'row', p: 0, m: 0}}>
                         <Typography variant="h6">{item.metadata.name}</Typography>
+                        <Chip sx={{ p: 0, mt: '5px', ml: 1, '& > *': {ml: '8px !important', mr: '-8px !important',}, }}
+                            icon={isLoading ? <CircularProgress size={20} /> : <RefreshIcon />} size="small" variant="outlined" color="warning" onClick={() => refreshData()}  />
                         <Chip sx={{ p: 0, mt: 0.5, ml: 1, '& > *': {ml: '8px !important', mr: '-8px !important',}, }}
                             icon={<InfoIcon />} size="small" variant="outlined" color="primary"
                             onClick={() => copyToClipboard("kubectl get " + item.kind + " " + item.metadata.name)} />
