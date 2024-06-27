@@ -391,7 +391,7 @@ func (c *Controller) allMRDs(provCRDs CRDMap) []*v1.CustomResourceDefinition {
 	res := []*v1.CustomResourceDefinition{}
 	for _, crds := range provCRDs {
 		for _, mrd := range crds {
-			if (mrd.Spec.Names.Kind == cpk8s.ProviderConfigKind || mrd.Spec.Names.Kind == cpk8s.ProviderConfigUsageKind) && mrd.Spec.Group != ProviderConfigRemoteExecAPIVersion {
+			if mrd.Spec.Names.Kind == cpk8s.ProviderConfigKind || mrd.Spec.Names.Kind == cpk8s.ProviderConfigUsageKind {
 				log.Debugf("Skipping %s/%s from listing of all MRs", mrd.Spec.Group, mrd.Spec.Names.Kind)
 				continue
 			}
