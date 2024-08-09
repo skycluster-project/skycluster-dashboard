@@ -11,7 +11,8 @@ import {
     ManagedResourceExtended,
     Provider,
     ProviderConfig,
-    XRD
+    XRD,
+    CRD
 } from "./types.ts";
 import {sendStatsToHeap} from "./utils.ts";
 
@@ -27,6 +28,19 @@ class APIClient {
             throw new Error(`Failed to fetch data from API. Status code: ${response.status}`);
         }
         return response
+    };
+
+    getCRDList = async () => {
+        const response = await this.innterFetch(`/api/crds`);
+        const data: ItemList<CRD> = await response.json();
+        sendStatsToHeap('List CRD', {count: data.items.length});
+        return data;
+    };
+    
+    getCRD = async (name: string) => {
+        const response = await this.innterFetch(`/api/crds/${name}`);
+        const data: CRD = await response.json();
+        return data;
     };
 
     getProviderList = async () => {

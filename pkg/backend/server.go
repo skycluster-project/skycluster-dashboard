@@ -45,7 +45,7 @@ func (s *Server) StartServer(ctx context.Context) (string, ControlChan, error) {
 		log.Infof("User analytics is collected to improve the quality, disable it with --no-analytics")
 	}
 
-	go checkUpgrade(&data.StatusInfo)
+	// go checkUpgrade(&data.StatusInfo)
 
 	api := NewRouter(data, s.Debug)
 	done := s.startBackgroundServer(api, ctx)

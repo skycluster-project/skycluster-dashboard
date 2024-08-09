@@ -68,6 +68,7 @@ type ManagedUnstructured struct { // no dedicated type for it in base CP, just r
 var (
 	// TODO: this is manually hardcoded, should be generated from the CRD
 	ProviderConfigRemoteExecAPIVersion = "remoteexec.crossplane.io"
+	CRDTargetGroup                     = "core.skycluster-manager.savitestbed.ca"
 )
 
 type CRDMap = map[string][]*v1.CustomResourceDefinition
@@ -115,6 +116,38 @@ func (c *Controller) GetStatus() StatusInfo {
 	c.StatusInfo.CrossplaneInstalled = crd != nil && err == nil
 
 	return c.StatusInfo
+}
+
+func (c *Controller) GetCRDs(ec echo.Context) error {
+	crds, err := c.apiExt.CustomResourceDefinitions().List(c.ctx, metav1.ListOptions{})
+
+	// Filter CRDs by the specific group
+	// var filteredCRDs v1.CustomResourceDefinitionList
+	filteredCRDs := &v1.CustomResourceDefinitionList{
+		ListMeta: metav1.ListMeta{
+			ResourceVersion: crds.ResourceVersion,
+		},
+	}
+	for _, crd := range crds.Items {
+		if crd.Spec.Group == CRDTargetGroup {
+			filteredCRDs.Items = append(filteredCRDs.Items, crd)
+		}
+	}
+
+	if err != nil {
+		return err
+	}
+
+	return ec.JSONPretty(http.StatusOK, filteredCRDs, "  ")
+}
+
+func (c *Controller) GetCRD(ec echo.Context) error {
+	res, err := c.apiExt.CustomResourceDefinitions().Get(c.ctx, ec.Param("name"), metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	return ec.JSONPretty(http.StatusOK, res, "  ")
 }
 
 func (c *Controller) GetProviders(ec echo.Context) error {

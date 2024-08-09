@@ -48,6 +48,8 @@ export type K8sResource = {
     status?: Status
 }
 
+export type CRD = K8sResource 
+
 export type Provider = K8sResource & {
     spec: {
         package: string

@@ -245,7 +245,7 @@ export default function CompositeResourcesList({items}: ItemListProps) {
                 onClose={onClose}
                 type="Composite Resource"
                 title={title}>
-                    <InfoTabs bridge={bridge} initial="relations"></InfoTabs>
+                    <InfoTabs bridge={bridge} initial="yaml"></InfoTabs>
             </InfoDrawer>
         </>
     );

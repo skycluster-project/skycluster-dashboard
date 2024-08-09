@@ -253,7 +253,7 @@ export default function ManagedResourcesList({items}: ItemListProps) {
                 onClose={onClose}
                 type="Managed Resource"
                 title={title}>
-                <InfoTabs bridge={bridge} initial="relations"></InfoTabs>
+                <InfoTabs bridge={bridge} initial="yaml"></InfoTabs>
             </InfoDrawer>
         </>
     );
