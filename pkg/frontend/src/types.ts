@@ -50,10 +50,15 @@ export type K8sResource = {
 
 export type CRD = K8sResource & {
     spec: {
+        group: string
         names: {
             kind: string
             plural: string
         }
+        versions: {
+            name: string
+            served?: boolean
+        }[]
         resourceRefs: Reference[]
     }
     status: Status

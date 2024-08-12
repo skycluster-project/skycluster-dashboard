@@ -12,12 +12,16 @@ type CRDListItemProps = {
 
 function CRDListItem({crd}: CRDListItemProps) {
     const navigate = useNavigate();
-    // const handleOnClick = () => {
-    //     navigate(
-    //         crd.metadata.name,
-    //         {state: crd}
-    //     );
-    // };
+    const handleOnClick = () => {
+        let crdVersion = crd.spec.versions.find(v => v.served);
+        if (!crdVersion) {
+            crdVersion = {name: "v1alpha1"};
+        }
+        navigate(
+            `/crs/${crd.spec.group}/${crdVersion.name}/${crd.spec.names.plural}`,
+            {state: crd}
+        );
+    };
 
     const copyToClipboard = (name: string) => {
         navigator.clipboard.writeText(name).then(() => {}, (err) => {
@@ -35,6 +39,9 @@ function CRDListItem({crd}: CRDListItemProps) {
                         <Chip sx={{ p: 0, mt: 0.5, ml: 1, '& > *': {ml: '8px !important', mr: '-8px !important',}, }}
                             icon={<InfoIcon />} size="small" variant="outlined" color="primary"
                             onClick={() => copyToClipboard("kubectl get " + crd.spec.names.kind)} />
+                        <Chip sx={{ p: 0, mt: 0.5, ml: 1, '& > *': {ml: '8px !important', mr: '-8px !important',}, }}
+                            icon={<InfoIcon />} size="small" variant="outlined" color="primary"
+                            onClick={handleOnClick} />
                         <ConditionChips status={crd.status}></ConditionChips>
                     </Box>
                 </CardContent>

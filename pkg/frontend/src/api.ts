@@ -12,7 +12,8 @@ import {
     Provider,
     ProviderConfig,
     XRD,
-    CRD
+    CRD,
+    K8sResource
 } from "./types.ts";
 import {sendStatsToHeap} from "./utils.ts";
 
@@ -40,6 +41,12 @@ class APIClient {
     getCRD = async (name: string) => {
         const response = await this.innterFetch(`/api/crds/${name}`);
         const data: CRD = await response.json();
+        return data;
+    }
+
+    getCustomResources = async (group: string, version: string, name: string) => {
+        const response = await this.innterFetch(`/api/crs/${group}/${version}/${name}`);
+        const data: ItemList<K8sResource> = await response.json();
         return data;
     };
 

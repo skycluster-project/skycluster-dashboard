@@ -26,6 +26,7 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -39,15 +40,16 @@ type StatusInfo struct {
 }
 
 type Controller struct {
-	StatusInfo StatusInfo
-	APIv1      crossplane.APIv1
-	ExtV1      crossplane.ExtensionsV1
-	Events     crossplane.EventsInterface
-	CRDs       crossplane.CRDInterface
-	ctx        context.Context
-	apiExt     *apiextensionsv1.ApiextensionsV1Client
-	mrdCache   *ttlcache.Cache[bool, []*v1.CustomResourceDefinition] // TODO: extract this into separate entity
-	mrCache    *ttlcache.Cache[bool, *unstructured.UnstructuredList]
+	StatusInfo    StatusInfo
+	APIv1         crossplane.APIv1
+	ExtV1         crossplane.ExtensionsV1
+	Events        crossplane.EventsInterface
+	CRDs          crossplane.CRDInterface
+	ctx           context.Context
+	apiExt        *apiextensionsv1.ApiextensionsV1Client
+	dynamicClient dynamic.Interface
+	mrdCache      *ttlcache.Cache[bool, []*v1.CustomResourceDefinition] // TODO: extract this into separate entity
+	mrCache       *ttlcache.Cache[bool, *unstructured.UnstructuredList]
 }
 
 type ConditionedObject interface {
@@ -118,6 +120,7 @@ func (c *Controller) GetStatus() StatusInfo {
 	return c.StatusInfo
 }
 
+// Author: Ehsan Etesami
 func (c *Controller) GetCRDs(ec echo.Context) error {
 	crds, err := c.apiExt.CustomResourceDefinitions().List(c.ctx, metav1.ListOptions{})
 
@@ -141,11 +144,30 @@ func (c *Controller) GetCRDs(ec echo.Context) error {
 	return ec.JSONPretty(http.StatusOK, filteredCRDs, "  ")
 }
 
+// Author: Ehsan Etesami
 func (c *Controller) GetCRD(ec echo.Context) error {
 	res, err := c.apiExt.CustomResourceDefinitions().Get(c.ctx, ec.Param("name"), metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
+
+	return ec.JSONPretty(http.StatusOK, res, "  ")
+}
+
+// Author: Ehsan Etesami
+func (c *Controller) GetCustomResources(ec echo.Context) error {
+	gvr := schema.GroupVersionResource{
+		Group:    ec.Param("group"),
+		Version:  ec.Param("version"),
+		Resource: ec.Param("resource"),
+	}
+
+	res := unstructured.UnstructuredList{Items: []unstructured.Unstructured{}}
+	list, err := c.dynamicClient.Resource(gvr).Namespace("").List(c.ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	res.Items = append(res.Items, list.Items...)
 
 	return ec.JSONPretty(http.StatusOK, res, "  ")
 }
@@ -767,16 +789,19 @@ func NewController(ctx context.Context, cfg *rest.Config, ns string, version str
 		return nil, err
 	}
 
+	dynamicClient, err := dynamic.NewForConfig(cfg)
+
 	mrdCacheTTL := durationFromEnv("KP_MRD_CACHE_TTL", 5*time.Minute)
 	mrCacheTTL := durationFromEnv("KP_MR_CACHE_TTL", 1*time.Minute)
 
 	controller := Controller{
-		ctx:    ctx,
-		APIv1:  apiV1,
-		ExtV1:  ext,
-		Events: evt,
-		apiExt: apiExt,
-		CRDs:   crossplane.NewCRDsClient(cfg, ext),
+		ctx:           ctx,
+		APIv1:         apiV1,
+		ExtV1:         ext,
+		Events:        evt,
+		apiExt:        apiExt,
+		dynamicClient: dynamicClient,
+		CRDs:          crossplane.NewCRDsClient(cfg, ext),
 		StatusInfo: StatusInfo{
 			CurVer: version,
 		},

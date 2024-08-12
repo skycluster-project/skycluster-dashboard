@@ -101,6 +101,9 @@ func configureRoutes(data *Controller, eng *echo.Echo) {
 	crds.GET("", data.GetCRDs)
 	crds.GET("/:name", data.GetCRD)
 
+	crs := api.Group("/crs")
+	crs.GET("/:group/:version/:resource", data.GetCustomResources)
+
 	rels := api.Group("/providers")
 	rels.GET("", data.GetProviders)
 	rels.GET("/:name", data.GetProvider)
