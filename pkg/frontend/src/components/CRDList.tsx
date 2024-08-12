@@ -1,5 +1,4 @@
-import { Info as InfoIcon} from '@mui/icons-material';
-import {Card, CardContent, Box, Grid, Chip} from '@mui/material';
+import {Card, CardContent, Box, Grid, CardActionArea} from '@mui/material';
 import {ItemList, CRD} from "../types.ts";
 import Typography from "@mui/material/Typography";
 import {useNavigate} from "react-router-dom";
@@ -23,28 +22,18 @@ function CRDListItem({crd}: CRDListItemProps) {
         );
     };
 
-    const copyToClipboard = (name: string) => {
-        navigator.clipboard.writeText(name).then(() => {}, (err) => {
-            console.error('Could not copy text: ', err);
-        });
-    };
-
     return (
-        <Grid item xs={12} md={6} lg={6} xl={4} key={crd.metadata.name}>
-            <Card variant="outlined">
-                <CardContent>
-                    <Typography variant="h6">{crd.spec.names.kind}</Typography>
-                    <Typography variant="body1" display="inline">{crd.metadata.name}</Typography>
-                    <Box sx={{display: 'flex', flexDirection: 'row', p: 0, m: 0}}>
-                        <Chip sx={{ p: 0, mt: 0.5, ml: 1, '& > *': {ml: '8px !important', mr: '-8px !important',}, }}
-                            icon={<InfoIcon />} size="small" variant="outlined" color="primary"
-                            onClick={() => copyToClipboard("kubectl get " + crd.spec.names.kind)} />
-                        <Chip sx={{ p: 0, mt: 0.5, ml: 1, '& > *': {ml: '8px !important', mr: '-8px !important',}, }}
-                            icon={<InfoIcon />} size="small" variant="outlined" color="primary"
-                            onClick={handleOnClick} />
-                        <ConditionChips status={crd.status}></ConditionChips>
-                    </Box>
-                </CardContent>
+        <Grid item xs={12} md={6} lg={6} xl={4} key={crd.metadata.name} onClick={handleOnClick}>
+            <Card variant="outlined" className="cursor-pointer">
+                <CardActionArea>
+                    <CardContent>
+                        <Typography variant="h6">{crd.spec.names.kind}</Typography>
+                        <Typography variant="body1" display="inline">{crd.metadata.name}</Typography>
+                        <Box sx={{display: 'flex', flexDirection: 'row', p: 0, m: 0}}>
+                            <ConditionChips status={crd.status}></ConditionChips>
+                        </Box>
+                    </CardContent>
+                </CardActionArea>
             </Card>
         </Grid>
     );
