@@ -17,6 +17,7 @@ import XRDsPage from "./pages/XRDsPage.tsx";
 import {themeDark, themeLight} from "./theme.ts";
 import MainMenu from "./components/MainMenu.tsx";
 import CRDsPage from './pages/CRDsPage.tsx';
+import CRDPage from './pages/CRDPage.tsx';
 
 const drawerWidth = 260;
 
@@ -91,8 +92,8 @@ export default function App() {
                             <Route path="/compositions/:name" element={compositions}/>
                             <Route path="/xrds" element={XRDs}/>
                             <Route path="/xrds/:name" element={XRDs}/>
-                            <Route path="/crds" element={CRDs}/>
-                            <Route path="/crds/:name" element={CRDs}/>
+                            <Route path="/crds" element={<CRDsPage/>}/>
+                            <Route path="/crds/:crd" element={<CRDPage/>}/>
                             <Route path="*" element={<Typography>Page not found</Typography>}/>
                         </Routes>
                     </ThemeProvider>

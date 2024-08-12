@@ -23,8 +23,9 @@ function CRDListItem({crd}: CRDListItemProps) {
             <Card variant="outlined" className="cursor-pointer">
                 <CardActionArea>
                     <CardContent>
-                        <Typography variant="h6">{crd.metadata.name}</Typography>
-                        <Typography variant="body1" display="inline">{crd.kind}</Typography>
+                        <Typography variant="h6">{crd.spec.names.kind}</Typography>
+                        <Typography variant="body1" display="inline">{crd.metadata.name}</Typography>
+                        <ConditionChips status={crd.status}></ConditionChips>
                     </CardContent>
                 </CardActionArea>
             </Card>

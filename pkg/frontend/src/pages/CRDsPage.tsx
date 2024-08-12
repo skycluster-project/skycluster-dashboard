@@ -24,7 +24,7 @@ const CRDsPage = () => {
 
     return (
         <>
-            <HeaderBar title="CRDs"/>
+            <HeaderBar title="SkyCluster CRDs"/>
             <PageBody>
                 <CRDList crds={crds}></CRDList>
             </PageBody>

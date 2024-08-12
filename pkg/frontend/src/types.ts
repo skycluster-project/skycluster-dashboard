@@ -48,7 +48,16 @@ export type K8sResource = {
     status?: Status
 }
 
-export type CRD = K8sResource 
+export type CRD = K8sResource & {
+    spec: {
+        names: {
+            kind: string
+            plural: string
+        }
+        resourceRefs: Reference[]
+    }
+    status: Status
+}
 
 export type Provider = K8sResource & {
     spec: {
