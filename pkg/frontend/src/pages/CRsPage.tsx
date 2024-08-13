@@ -58,11 +58,10 @@ const CRDPage = () => {
                                 onClick={() => copyToClipboard("kubectl get " + crd.spec.names.kind + " | less")} />
                             <ConditionChips status={crd.status} />
                             <Chip variant="outlined" className="mr-1 ml-1"
-                                key={"deleteAll"}
-                                label={"Delete All"}
-                                title={"Delete ALL"}
-                                color={("error")} 
-                                onClick={() => copyToClipboard("kubectl get delete " + crd.spec.names.kind + " " + crNames)}></Chip>
+                                label={"Delete All"} color={("error")} 
+                                onClick={() => {
+                                    copyToClipboard("kubectl delete " + crd.metadata.name + " " + crNames)
+                                }}></Chip>
                         </Paper>
                     </Grid>
                     <Grid item xs={12} md={6}>

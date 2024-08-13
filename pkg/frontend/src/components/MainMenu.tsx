@@ -89,6 +89,14 @@ export default function MainMenu() {
                     <ListItemText primary="CRDs"/>
                 </ListItemButton>
             </ListItem>
+            <ListItem key="CMs" disablePadding>
+                <ListItemButton component={RouterLink} to="/cms" sx={styleHighLight("/cms")}>
+                    <ListItemIcon>
+                        <XRDsIcon/>
+                    </ListItemIcon>
+                    <ListItemText primary="CMs"/>
+                </ListItemButton>
+            </ListItem>
         </List>
     </>)
 }
