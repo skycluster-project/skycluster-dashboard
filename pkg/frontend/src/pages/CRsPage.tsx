@@ -1,24 +1,25 @@
 import { Info as InfoIcon, HelpOutline as HelpOutlineIcon, DeleteForever as DeleteForeverIcon} from '@mui/icons-material';
-import {Divider, Alert, Box, Grid, LinearProgress, Chip, Paper, Typography} from "@mui/material";
-import {useParams} from "react-router-dom";
+import {Alert, Box, Grid, Chip, Paper, Typography} from "@mui/material";
+import {useNavigate, useParams} from "react-router-dom";
 import {K8sResource, CRD, ItemList} from "../types.ts";
 import {useEffect, useState} from "react";
 import apiClient from "../api.ts";
 import ConditionChips from "../components/ConditionChips.tsx";
 import HeaderBar from "../components/HeaderBar.tsx";
 import PageBody from "../components/PageBody.tsx";
+import InfoTabs, {ItemContext} from "../components/InfoTabs.tsx";
+import InfoDrawer from "../components/InfoDrawer.tsx";
 
 const CRDPage = () => {
-    const {group: crdGroup, version: crdVersion, name: crdName} = useParams();
+    const {group: crdGroup, version: crdVersion, name: crdName, focusedName: focusedName} = useParams();
     const [crd, setCRD] = useState<CRD | null>(null);
     const [crs, setCRs] = useState<ItemList<K8sResource> | null>(null);
     const [error, setError] = useState<object | null>(null);
-    
-    const copyToClipboard = (name: string) => {
-        navigator.clipboard.writeText(name).then(() => {}, (err) => {
-            console.error('Could not copy text: ', err);
-        });
-    };
+
+    const navigate = useNavigate();
+    const [isDrawerOpen, setDrawerOpen] = useState<boolean>(focusedName != undefined);
+    const [focused, setFocused] = useState<K8sResource>({metadata: {name: ""}, kind: "", apiVersion: ""});
+
 
     useEffect(() => {
         apiClient.getCRD(crdName as string + "." + crdGroup as string)
@@ -38,11 +39,46 @@ const CRDPage = () => {
     }
 
     if (!crs || !crd) {
-        return <LinearProgress/>
+        return (
+            <Typography variant="h6">No items</Typography>
+        )
     }
 
     // create a list of all cr.metadata.name separated by spaces
     const crNames = crs.items.map((cr) => cr.metadata.name).join(" ");
+
+    const onClose = () => {
+        setDrawerOpen(false)
+        navigate(
+            "/crs/" + crdGroup + "/" + crdVersion + "/" + crdName, 
+            {state: focused})
+    }
+
+    const onItemClick = (item: K8sResource) => {
+        setFocused(item)
+        setDrawerOpen(true)
+        navigate(
+            "./" + item.metadata.name,
+            {state: item}
+        );
+    }
+
+    if (!focused.metadata.name && focusedName) {
+        crs?.items?.forEach((item) => {
+            if (focusedName == item.metadata.name) {
+                setFocused(item)
+            }
+        })
+    }
+
+    const bridge = new ItemContext()
+    bridge.setCurrent(focused)
+    
+    const copyToClipboard = (name: string) => {
+        navigator.clipboard.writeText(name).then(() => {}, (err) => {
+            console.error('Could not copy text: ', err);
+        });
+    };
 
     return (
         <>
@@ -75,7 +111,8 @@ const CRDPage = () => {
                                         onClick={() => copyToClipboard("kubectl get " + cr.kind + " " + cr.metadata.name)} />
                                     <Chip sx={{ p: 0, mt: 0.5, ml: 1, '& > *': {ml: '8px !important', mr: '-8px !important',}, }}
                                         icon={<HelpOutlineIcon />} size="small" variant="outlined" color="secondary"
-                                        onClick={() => copyToClipboard("kubectl get -o yaml " + cr.kind + " " + cr.metadata.name + " | less -SRF")} />
+                                        onClick={() => onItemClick(cr)}
+                                    />
                                     <Chip sx={{ p: 0, mt: 0.5, ml: 1, '& > *': {ml: '8px !important', mr: '-8px !important',}, }}
                                         icon={<DeleteForeverIcon />} size="small" variant="outlined" color="error"
                                         onClick={() => copyToClipboard("kubectl delete " + cr.kind + " " + cr.metadata.name)} />
@@ -85,6 +122,9 @@ const CRDPage = () => {
                         </Paper>
                     </Grid>
                 </Grid>
+                <InfoDrawer isOpen={isDrawerOpen} onClose={onClose} type="Custom Resource" title={bridge.curItem.metadata.name}>
+                    <InfoTabs bridge={bridge} noStatus={true} noEvents={true} noRelations={true} initial="yaml"></InfoTabs>
+                </InfoDrawer>
             </PageBody>
         </>
     );

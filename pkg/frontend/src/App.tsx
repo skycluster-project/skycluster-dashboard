@@ -96,6 +96,7 @@ export default function App() {
                             <Route path="/cms/:name" element={<CMsPage/>}/>
                             <Route path="/crds" element={<CRDsPage/>}/>
                             <Route path="/crs/:group/:version/:name" element={<CRsPage/>}/>
+                            <Route path="/crs/:group/:version/:name/:focusedName" element={<CRsPage/>}/>
                             <Route path="*" element={<Typography>Page not found</Typography>}/>
                         </Routes>
                     </ThemeProvider>

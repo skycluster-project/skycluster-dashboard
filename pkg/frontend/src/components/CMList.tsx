@@ -1,8 +1,7 @@
-import {Card, CardContent, Chip, Grid, CardActionArea} from '@mui/material';
+import {Card, CardContent, Grid, CardActionArea} from '@mui/material';
 import {ItemList, CM, K8sResource} from "../types.ts";
 import Typography from "@mui/material/Typography";
 import {useNavigate, useParams} from "react-router-dom";
-import {DeleteForever as DeleteForeverIcon} from "@mui/icons-material";
 import {useState} from "react";
 import InfoTabs, {ItemContext} from "./InfoTabs.tsx";
 import InfoDrawer from "./InfoDrawer.tsx";
@@ -15,23 +14,13 @@ type CMListItemProps = {
 
 function CMListItem({item, onItemClick}: CMListItemProps) {
     
-    const copyToClipboard = (name: string) => {
-        navigator.clipboard.writeText(name).then(() => {}, (err) => {
-            console.error('Could not copy text: ', err);
-        });
-    };
-
     return (
-        // onClick={handleOnClick}
        <Grid item xs={12} md={6} lg={6} xl={4} key={item.metadata.name} onClick={() => {onItemClick(item)}} >
             <Card variant="outlined" className="cursor-pointer">
                 <CardActionArea>
                     <CardContent>
                         <Typography variant="h6">{item.metadata.name}</Typography>
                         <Typography variant="body1" display="inline">{item.metadata.name}</Typography>
-                        <Chip sx={{ p: 0, mt: 0.5, ml: 1, '& > *': {ml: '8px !important', mr: '-8px !important',}, }}
-                            icon={<DeleteForeverIcon />} size="small" variant="outlined" color="error"
-                            onClick={() => copyToClipboard("kubectl delete cm " + item.metadata.name)} />
                     </CardContent>
                 </CardActionArea>
             </Card>
