@@ -131,7 +131,7 @@ func (c *Controller) GetCMs(ec echo.Context) error {
 	}
 
 	SkyClusterAPIVersion := SkyClusterCoreGroup + "/" + SkyClusterCoreGroupVersion
-	filteredConfigMaps := &v12.ConfigMapList{}
+	filteredConfigMaps := &v12.ConfigMapList{Items: []v12.ConfigMap{}}
 	// Filter configmaps based on the owner reference API version
 	for _, configMap := range configMaps.Items {
 		for _, ownerReference := range configMap.OwnerReferences {
