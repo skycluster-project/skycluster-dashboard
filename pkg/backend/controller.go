@@ -50,6 +50,7 @@ type Controller struct {
 	apiExt        *apiextensionsv1.ApiextensionsV1Client
 	clientset     *kubernetes.Clientset
 	dynamicClient dynamic.Interface
+	crdCashe      *ttlcache.Cache[bool, *v1.CustomResourceDefinitionList]
 	mrdCache      *ttlcache.Cache[bool, []*v1.CustomResourceDefinition] // TODO: extract this into separate entity
 	mrCache       *ttlcache.Cache[bool, *unstructured.UnstructuredList]
 }
@@ -146,23 +147,29 @@ func (c *Controller) GetCMs(ec echo.Context) error {
 
 // Author: Ehsan Etesami
 func (c *Controller) GetCRDs(ec echo.Context) error {
-	crds, err := c.apiExt.CustomResourceDefinitions().List(c.ctx, metav1.ListOptions{})
-
 	// Filter CRDs by the specific group
-	// var filteredCRDs v1.CustomResourceDefinitionList
+
 	filteredCRDs := &v1.CustomResourceDefinitionList{
-		ListMeta: metav1.ListMeta{
-			ResourceVersion: crds.ResourceVersion,
-		},
-	}
-	for _, crd := range crds.Items {
-		if crd.Spec.Group == SkyClusterCoreGroup {
-			filteredCRDs.Items = append(filteredCRDs.Items, crd)
-		}
+		ListMeta: metav1.ListMeta{},
 	}
 
-	if err != nil {
-		return err
+	// ResourceVersion: crds.ResourceVersion,
+	cacheItem := c.crdCashe.Get(true)
+	if cacheItem == nil {
+		crds, err := c.apiExt.CustomResourceDefinitions().List(c.ctx, metav1.ListOptions{})
+		if err != nil {
+			return err
+		}
+
+		filteredCRDs.ResourceVersion = crds.ResourceVersion
+		for _, crd := range crds.Items {
+			if crd.Spec.Group == SkyClusterCoreGroup {
+				filteredCRDs.Items = append(filteredCRDs.Items, crd)
+			}
+		}
+		c.crdCashe.Set(true, filteredCRDs, ttlcache.DefaultTTL)
+	} else {
+		filteredCRDs = cacheItem.Value()
 	}
 
 	return ec.JSONPretty(http.StatusOK, filteredCRDs, "  ")
@@ -816,6 +823,7 @@ func NewController(ctx context.Context, cfg *rest.Config, ns string, version str
 	dynamicClient, err := dynamic.NewForConfig(cfg)
 	clientset, err := kubernetes.NewForConfig(cfg)
 
+	crdCacheTTL := durationFromEnv("KP_MRD_CACHE_TTL", 5*time.Minute)
 	mrdCacheTTL := durationFromEnv("KP_MRD_CACHE_TTL", 5*time.Minute)
 	mrCacheTTL := durationFromEnv("KP_MR_CACHE_TTL", 1*time.Minute)
 
@@ -832,6 +840,10 @@ func NewController(ctx context.Context, cfg *rest.Config, ns string, version str
 			CurVer: version,
 		},
 
+		crdCashe: ttlcache.New(
+			ttlcache.WithTTL[bool, *v1.CustomResourceDefinitionList](crdCacheTTL),
+			ttlcache.WithDisableTouchOnHit[bool, *v1.CustomResourceDefinitionList](),
+		),
 		mrdCache: ttlcache.New(
 			ttlcache.WithTTL[bool, []*v1.CustomResourceDefinition](mrdCacheTTL),
 			ttlcache.WithDisableTouchOnHit[bool, []*v1.CustomResourceDefinition](),
@@ -842,6 +854,7 @@ func NewController(ctx context.Context, cfg *rest.Config, ns string, version str
 		),
 	}
 
+	go controller.crdCashe.Start() // starts automatic expired item deletion
 	go controller.mrdCache.Start() // starts automatic expired item deletion
 	go controller.mrCache.Start()  // starts automatic expired item deletion
 

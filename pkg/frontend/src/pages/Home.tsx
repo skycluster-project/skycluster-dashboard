@@ -21,11 +21,11 @@ function Home() {
                     <Typography variant="subtitle2">Any Service, Anywhere.</Typography>
                 </Box>
                 <Grid container spacing={5} alignItems="stretch">
-                    <Grid item md={4}>
+                    {/* <Grid item md={4}>
                         <HomePageBlock title="Claims" getter={apiClient.getClaimList} onClick={() => {
                             navigate("claims")
                         }} icon={<ClaimsIcon fontSize={"large"}/>}/>
-                    </Grid>
+                    </Grid> */}
                     <Grid item md={4}>
                         <HomePageBlock title="Composite Resources" getter={apiClient.getCompositeResourcesList} onClick={() => {
                             navigate("composite")
