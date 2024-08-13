@@ -27,6 +27,7 @@ import (
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -47,6 +48,7 @@ type Controller struct {
 	CRDs          crossplane.CRDInterface
 	ctx           context.Context
 	apiExt        *apiextensionsv1.ApiextensionsV1Client
+	clientset     *kubernetes.Clientset
 	dynamicClient dynamic.Interface
 	mrdCache      *ttlcache.Cache[bool, []*v1.CustomResourceDefinition] // TODO: extract this into separate entity
 	mrCache       *ttlcache.Cache[bool, *unstructured.UnstructuredList]
@@ -70,7 +72,8 @@ type ManagedUnstructured struct { // no dedicated type for it in base CP, just r
 var (
 	// TODO: this is manually hardcoded, should be generated from the CRD
 	ProviderConfigRemoteExecAPIVersion = "remoteexec.crossplane.io"
-	CRDTargetGroup                     = "core.skycluster-manager.savitestbed.ca"
+	SkyClusterCoreGroup                = "core.skycluster-manager.savitestbed.ca"
+	SkyClusterCoreGroupVersion         = "v1alpha1"
 )
 
 type CRDMap = map[string][]*v1.CustomResourceDefinition
@@ -121,6 +124,27 @@ func (c *Controller) GetStatus() StatusInfo {
 }
 
 // Author: Ehsan Etesami
+func (c *Controller) GetCMs(ec echo.Context) error {
+	configMaps, err := c.clientset.CoreV1().ConfigMaps("").List(c.ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	SkyClusterAPIVersion := SkyClusterCoreGroup + "/" + SkyClusterCoreGroupVersion
+	filteredConfigMaps := &v12.ConfigMapList{}
+	// Filter configmaps based on the owner reference API version
+	for _, configMap := range configMaps.Items {
+		for _, ownerReference := range configMap.OwnerReferences {
+			if ownerReference.APIVersion == SkyClusterAPIVersion {
+				filteredConfigMaps.Items = append(filteredConfigMaps.Items, configMap)
+			}
+		}
+	}
+
+	return ec.JSONPretty(http.StatusOK, filteredConfigMaps, "  ")
+}
+
+// Author: Ehsan Etesami
 func (c *Controller) GetCRDs(ec echo.Context) error {
 	crds, err := c.apiExt.CustomResourceDefinitions().List(c.ctx, metav1.ListOptions{})
 
@@ -132,7 +156,7 @@ func (c *Controller) GetCRDs(ec echo.Context) error {
 		},
 	}
 	for _, crd := range crds.Items {
-		if crd.Spec.Group == CRDTargetGroup {
+		if crd.Spec.Group == SkyClusterCoreGroup {
 			filteredCRDs.Items = append(filteredCRDs.Items, crd)
 		}
 	}
@@ -790,6 +814,7 @@ func NewController(ctx context.Context, cfg *rest.Config, ns string, version str
 	}
 
 	dynamicClient, err := dynamic.NewForConfig(cfg)
+	clientset, err := kubernetes.NewForConfig(cfg)
 
 	mrdCacheTTL := durationFromEnv("KP_MRD_CACHE_TTL", 5*time.Minute)
 	mrCacheTTL := durationFromEnv("KP_MR_CACHE_TTL", 1*time.Minute)
@@ -800,6 +825,7 @@ func NewController(ctx context.Context, cfg *rest.Config, ns string, version str
 		ExtV1:         ext,
 		Events:        evt,
 		apiExt:        apiExt,
+		clientset:     clientset,
 		dynamicClient: dynamicClient,
 		CRDs:          crossplane.NewCRDsClient(cfg, ext),
 		StatusInfo: StatusInfo{

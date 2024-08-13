@@ -48,6 +48,8 @@ export type K8sResource = {
     status?: Status
 }
 
+export type CM = K8sResource
+
 export type CRD = K8sResource & {
     spec: {
         group: string

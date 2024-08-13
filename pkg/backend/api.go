@@ -97,6 +97,9 @@ func configureRoutes(data *Controller, eng *echo.Echo) {
 	api.GET("/events/:name", data.GetEvents)
 	api.GET("/events/:namespace/:name", data.GetEvents)
 
+	cms := api.Group("/cms")
+	cms.GET("", data.GetCMs)
+
 	crds := api.Group("/crds")
 	crds.GET("", data.GetCRDs)
 	crds.GET("/:name", data.GetCRD)

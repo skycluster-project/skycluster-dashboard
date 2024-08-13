@@ -18,6 +18,7 @@ import {themeDark, themeLight} from "./theme.ts";
 import MainMenu from "./components/MainMenu.tsx";
 import CRDsPage from './pages/CRDsPage.tsx';
 import CRsPage from './pages/CRsPage.tsx';
+import CMsPage from './pages/CMsPage.tsx';
 
 const drawerWidth = 260;
 
@@ -33,7 +34,6 @@ const DrawerHeader = styled('div')(({theme}) => ({
 export default function App() {
     // TODO: extract some components from here
     const XRDs = <XRDsPage/>
-    const CRDs = <CRDsPage/>
     const compositions = <CompositionsPage/>
     const composite = <CompositeResourcesPage/>
     const managed = <ManagedResourcesPage/>
@@ -92,6 +92,8 @@ export default function App() {
                             <Route path="/compositions/:name" element={compositions}/>
                             <Route path="/xrds" element={XRDs}/>
                             <Route path="/xrds/:name" element={XRDs}/>
+                            <Route path="/cms" element={<CMsPage/>}/>
+                            <Route path="/cms/:name" element={<CMsPage/>}/>
                             <Route path="/crds" element={<CRDsPage/>}/>
                             <Route path="/crs/:group/:version/:name" element={<CRsPage/>}/>
                             <Route path="*" element={<Typography>Page not found</Typography>}/>

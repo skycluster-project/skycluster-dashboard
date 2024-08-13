@@ -1,18 +1,18 @@
 import {Alert, LinearProgress} from "@mui/material";
 import apiClient from "../api.ts";
-import CRDList from "../components/CRDList.tsx";
+import CMList from "../components/CMList.tsx";
 import {useEffect, useState} from "react";
-import {ItemList, CRD} from "../types.ts";
+import {ItemList, CM} from "../types.ts";
 import HeaderBar from "../components/HeaderBar.tsx";
 import PageBody from "../components/PageBody.tsx";
 
-const CRDsPage = () => {
-    const [crds, setCRDs] = useState<ItemList<CRD> | null>(null);
+const CMsPage = () => {
+    const [cms, setCMs] = useState<ItemList<CM> | null>(null);
     const [error, setError] = useState<object | null>(null);
 
     useEffect(() => {
-        apiClient.getCRDsList()
-            .then((data) => setCRDs(data))
+        apiClient.getCMsList()
+            .then((data) => setCMs(data))
             .catch((error) => setError(error));
     }, []);
 
@@ -20,16 +20,16 @@ const CRDsPage = () => {
         return (<Alert severity="error">Failed: {error.toString()}</Alert>)
     }
 
-    if (!crds) return <LinearProgress/>;
+    if (!cms) return <LinearProgress/>;
 
     return (
         <>
-            <HeaderBar title="SkyCluster CRDs"/>
+            <HeaderBar title="SkyCluster ConfigMaps"/>
             <PageBody>
-                <CRDList crds={crds}></CRDList>
+                <CMList items={cms}></CMList>
             </PageBody>
         </>
     );
 };
 
-export default CRDsPage;
+export default CMsPage;
