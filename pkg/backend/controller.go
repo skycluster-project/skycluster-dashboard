@@ -73,8 +73,12 @@ type ManagedUnstructured struct { // no dedicated type for it in base CP, just r
 var (
 	// TODO: this is manually hardcoded, should be generated from the CRD
 	ProviderConfigRemoteExecAPIVersion = "remoteexec.crossplane.io"
-	SkyClusterCoreGroup                = "core.skycluster-manager.savitestbed.ca"
-	SkyClusterCoreGroupVersion         = "v1alpha1"
+	SkyClusterAPI                      = "skycluster-manager.savitestbed.ca"
+	SkyClusterCoreGroup                = "core." + SkyClusterAPI
+	SkyClusterVersion                  = "v1alpha1"
+	SkyClusterManagedByAnnotation      = SkyClusterAPI + "/managed-by"
+	SkyClusterManagedByAnnotationValue = "skycluster"
+	SkyClusterConfigTypeAnnotation     = SkyClusterAPI + "/config-type"
 )
 
 type CRDMap = map[string][]*v1.CustomResourceDefinition
@@ -131,15 +135,19 @@ func (c *Controller) GetCMs(ec echo.Context) error {
 		return err
 	}
 
-	SkyClusterAPIVersion := SkyClusterCoreGroup + "/" + SkyClusterCoreGroupVersion
-	filteredConfigMaps := &v12.ConfigMapList{Items: []v12.ConfigMap{}}
 	// Filter configmaps based on the owner reference API version
+	// SkyClusterAPIVersion := SkyClusterCoreGroup + "/" + SkyClusterVersion
+	// Filter based on the annotation, should contain the managed-by annotation
+	filteredConfigMaps := &v12.ConfigMapList{Items: []v12.ConfigMap{}}
 	for _, configMap := range configMaps.Items {
-		for _, ownerReference := range configMap.OwnerReferences {
-			if ownerReference.APIVersion == SkyClusterAPIVersion {
-				filteredConfigMaps.Items = append(filteredConfigMaps.Items, configMap)
-			}
+		if v, e := configMap.Annotations[SkyClusterManagedByAnnotation]; e && v == SkyClusterManagedByAnnotationValue {
+			filteredConfigMaps.Items = append(filteredConfigMaps.Items, configMap)
 		}
+		// for _, ownerReference := range configMap.OwnerReferences {
+		// 	if ownerReference.APIVersion == SkyClusterAPIVersion {
+		// 		filteredConfigMaps.Items = append(filteredConfigMaps.Items, configMap)
+		// 	}
+		// }
 	}
 
 	return ec.JSONPretty(http.StatusOK, filteredConfigMaps, "  ")

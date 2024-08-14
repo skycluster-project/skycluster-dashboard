@@ -30,14 +30,6 @@ export default function MainMenu() {
 
     return (<>
         <List>
-            {/* <ListItem key="Claims" disablePadding>
-                <ListItemButton component={RouterLink} to="/claims" sx={styleHighLight("/claims")}>
-                    <ListItemIcon>
-                        <ClaimsIcon/>
-                    </ListItemIcon>
-                    <ListItemText primary="Claims"/>
-                </ListItemButton>
-            </ListItem> */}
             <ListItem key="Composite Resources" disablePadding>
                 <ListItemButton component={RouterLink} to="/composite" sx={styleHighLight("/composite")}>
                     <ListItemIcon>

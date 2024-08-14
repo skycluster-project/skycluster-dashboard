@@ -1,4 +1,5 @@
-import {Card, CardContent, Grid, CardActionArea} from '@mui/material';
+import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
+import {Card, CardContent, Grid, CardActionArea, Button, Stack, Accordion, AccordionSummary, AccordionDetails} from '@mui/material';
 import {ItemList, CM, K8sResource} from "../types.ts";
 import Typography from "@mui/material/Typography";
 import {useNavigate, useParams} from "react-router-dom";
@@ -75,13 +76,67 @@ export default function CMList({items}: CMListProps) {
         )
     }
 
+
+    // Define groupedItems
+    const groupedItems: { [itemIndex: string]: CM[] } = {};
+    items.items.forEach((item) => {
+        const itemIndex = item.metadata?.annotations?.["skycluster-manager.savitestbed.ca/config-type"] ?? 'NoType';
+        if (!groupedItems[itemIndex]) {
+            groupedItems[itemIndex] = [];
+        }
+        groupedItems[itemIndex].push(item);
+    });
+
+    const collapseAll = () => {
+        setExpandedItems({});
+    };
+
+    const getApiVersion = (items: CM[]): string => {
+        if (items.length === 0) {
+          return "NoType"; // or handle empty object case appropriately
+        }
+      
+        const configType = items[0].metadata.annotations?.["skycluster-manager.savitestbed.ca/config-type"] ?? "NoType";  
+        return configType;
+    };
+
+    const expandAll = () => {
+        const expandedState = Object.keys(groupedItems).reduce((acc: Record<string, boolean>, itemIndex: string) => {
+            acc[itemIndex] = true;
+            return acc;
+        }, {});
+        setExpandedItems(expandedState);
+    };
+    const [expandedItems, setExpandedItems] = useState<{[itemIndex: string]: boolean}>({});
+    const handleAccordionChange = (itemIndex: string) => {
+        setExpandedItems((prevState) => ({
+            ...prevState,
+            [itemIndex]: !prevState[itemIndex],
+        }));
+    };
+
     return (
         <>
-            <Grid container spacing={2}>
-                {items?.items?.map((item: CM) => (
-                    <CMListItem item={item} key={item.metadata.name} onItemClick={onItemClick}/>
-                ))}
-            </Grid>
+            <div className="m-2">
+                <span className="mx-1"><Button variant="outlined" onClick={expandAll}>Expand All</Button></span>
+                <span className="mx-1"><Button variant="outlined" onClick={collapseAll}>Collapse All</Button></span>
+            </div>
+            {Object.entries(groupedItems).map(([itemIndex, items]) => (
+                <Grid item xs={12} md={12} key={itemIndex} m={1}>
+                    <Accordion key={itemIndex} expanded={expandedItems[itemIndex] || false} onChange={() => handleAccordionChange(itemIndex)}>
+                    <AccordionSummary expandIcon={<ExpandMoreIcon/>}>
+                        <Stack direction="row" spacing={1}>
+                            <Typography sx={{pt: '3px'}} variant="overline">{getApiVersion(items)}</Typography>
+                        </Stack>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                            {items?.map((item: CM) => (
+                                <CMListItem item={item} key={item.metadata.name} onItemClick={onItemClick}/>
+                            ))}
+                    </AccordionDetails>
+                    </Accordion>
+                </Grid>
+            ))}
             <InfoDrawer isOpen={isDrawerOpen} onClose={onClose} type="ConfigMaps" title={bridge.curItem.metadata.name}>
                 <InfoTabs bridge={bridge} noStatus={true} noEvents={true} noRelations={true} initial="yaml"></InfoTabs>
             </InfoDrawer>
