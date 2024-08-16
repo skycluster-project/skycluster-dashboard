@@ -14,6 +14,7 @@ export type Metadata = {
     name: string
     namespace?: string
     annotations?: { [key: string]: string; }
+    labels?: { [key: string]: string; }
 }
 
 export type Condition = {

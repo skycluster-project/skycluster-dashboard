@@ -76,9 +76,9 @@ var (
 	SkyClusterAPI                      = "skycluster-manager.savitestbed.ca"
 	SkyClusterCoreGroup                = "core." + SkyClusterAPI
 	SkyClusterVersion                  = "v1alpha1"
-	SkyClusterManagedByAnnotation      = SkyClusterAPI + "/managed-by"
-	SkyClusterManagedByAnnotationValue = "skycluster"
-	SkyClusterConfigTypeAnnotation     = SkyClusterAPI + "/config-type"
+	SkyClusterAnnotationManagedBy      = SkyClusterAPI + "/managed-by"
+	SkyClusterAnnotationManagedByValue = "skycluster"
+	SkyClusterAnnotationConfigType     = SkyClusterAPI + "/config-type"
 )
 
 type CRDMap = map[string][]*v1.CustomResourceDefinition
@@ -130,6 +130,8 @@ func (c *Controller) GetStatus() StatusInfo {
 
 // Author: Ehsan Etesami
 func (c *Controller) GetCMs(ec echo.Context) error {
+	// Instead, we can filter using labels to take
+	// advantage of the filtersing capabilities of the API server
 	configMaps, err := c.clientset.CoreV1().ConfigMaps("").List(c.ctx, metav1.ListOptions{})
 	if err != nil {
 		return err
@@ -140,7 +142,7 @@ func (c *Controller) GetCMs(ec echo.Context) error {
 	// Filter based on the annotation, should contain the managed-by annotation
 	filteredConfigMaps := &v12.ConfigMapList{Items: []v12.ConfigMap{}}
 	for _, configMap := range configMaps.Items {
-		if v, e := configMap.Annotations[SkyClusterManagedByAnnotation]; e && v == SkyClusterManagedByAnnotationValue {
+		if v, e := configMap.Annotations[SkyClusterAnnotationManagedBy]; e && v == SkyClusterAnnotationManagedByValue {
 			filteredConfigMaps.Items = append(filteredConfigMaps.Items, configMap)
 		}
 		// for _, ownerReference := range configMap.OwnerReferences {

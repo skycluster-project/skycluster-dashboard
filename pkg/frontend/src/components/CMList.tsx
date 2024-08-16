@@ -1,5 +1,5 @@
-import { ExpandMore as ExpandMoreIcon } from '@mui/icons-material';
-import {Card, CardContent, Grid, CardActionArea, Button, Stack, Accordion, AccordionSummary, AccordionDetails} from '@mui/material';
+import { ExpandMore as ExpandMoreIcon} from '@mui/icons-material';
+import {Paper, Box, Card, Chip, CardContent, Grid, CardActionArea, Button, Stack, Accordion, AccordionSummary, AccordionDetails} from '@mui/material';
 import {ItemList, CM, K8sResource} from "../types.ts";
 import Typography from "@mui/material/Typography";
 import {useNavigate, useParams} from "react-router-dom";
@@ -14,14 +14,23 @@ type CMListItemProps = {
 };
 
 function CMListItem({item, onItemClick}: CMListItemProps) {
-    
+    const providerName = item.metadata.annotations?.["skycluster-manager.savitestbed.ca/provider-name"];
+    const providerRegion = item.metadata.annotations?.["skycluster-manager.savitestbed.ca/provider-region"];
+    const providerZone = item.metadata.annotations?.["skycluster-manager.savitestbed.ca/provider-zone"];
     return (
        <Grid item xs={12} md={6} lg={6} xl={4} key={item.metadata.name} onClick={() => {onItemClick(item)}} >
             <Card variant="outlined" className="cursor-pointer">
                 <CardActionArea>
                     <CardContent>
-                        <Typography variant="h6">{item.metadata.name}</Typography>
-                        <Typography variant="body1" display="inline">{item.metadata.name}</Typography>
+                        <Typography variant="h6" display="inline" style={{ textTransform: 'uppercase' }}>{providerName}</Typography>
+                        {providerRegion && (
+                            <Chip className="mx-2" size="small" 
+                            label={providerRegion} />
+                        )}
+                        {providerZone == "default" && (
+                            <Chip className="mx-1" color="primary" size="small" label="DEFAULT"/>
+                        )}
+                        <Typography variant="body1">{item.metadata.name}</Typography>
                     </CardContent>
                 </CardActionArea>
             </Card>
@@ -79,8 +88,31 @@ export default function CMList({items}: CMListProps) {
 
     // Define groupedItems
     const groupedItems: { [itemIndex: string]: CM[] } = {};
+    type ProviderData = {
+        name: string
+        region?: string
+        zone?: string
+    }
+    const providerRegions: { [provider: string]: ProviderData[] } = {};
+    let defaultProviderCount = 0;
+    
     items.items.forEach((item) => {
-        const itemIndex = item.metadata?.annotations?.["skycluster-manager.savitestbed.ca/config-type"] ?? 'NoType';
+        let itemIndex = item.metadata?.annotations?.["skycluster-manager.savitestbed.ca/config-type"] ?? 'NoType';
+        // check if itemIndex is "provider-vars" and if so append the provider-name
+        if (itemIndex == "provider-vars") {
+            const providerName = item.metadata?.labels?.["provider-name"] ?? "";
+            if (providerName != "") {
+                itemIndex += `-${providerName}`;
+            }
+            if (!providerRegions[providerName]) {
+                providerRegions[providerName] = [];
+            }
+            const providerRegion = item.metadata?.annotations?.["skycluster-manager.savitestbed.ca/provider-region"];
+            if (!providerRegions[providerName].find((data) => data.name == providerName && data.region == providerRegion)) {                
+                providerRegions[providerName].push({name: providerName, region: providerRegion});
+            }
+            item.metadata?.annotations?.["skycluster-manager.savitestbed.ca/provider-zone"] == "default" ? defaultProviderCount++ : null;
+        }
         if (!groupedItems[itemIndex]) {
             groupedItems[itemIndex] = [];
         }
@@ -96,7 +128,13 @@ export default function CMList({items}: CMListProps) {
           return "NoType"; // or handle empty object case appropriately
         }
       
-        const configType = items[0].metadata.annotations?.["skycluster-manager.savitestbed.ca/config-type"] ?? "NoType";  
+        let configType = items[0].metadata.annotations?.["skycluster-manager.savitestbed.ca/config-type"] ?? "NoType";  
+        if (configType === "provider-vars") {
+            const providerName = items[0].metadata?.labels?.["provider-name"];
+            if (providerName) {
+                configType += `-${providerName}`;
+            }
+        }
         return configType;
     };
 
@@ -118,8 +156,33 @@ export default function CMList({items}: CMListProps) {
     return (
         <>
             <div className="m-2">
-                <span className="mx-1"><Button variant="outlined" onClick={expandAll}>Expand All</Button></span>
-                <span className="mx-1"><Button variant="outlined" onClick={collapseAll}>Collapse All</Button></span>
+            <Stack spacing={2}>
+                <Box>
+                    <span className="mx-1"><Button variant="outlined" onClick={expandAll}>Expand All</Button></span>
+                    <span className="mx-1"><Button variant="outlined" onClick={collapseAll}>Collapse All</Button></span>
+                </Box>
+                <Box>
+                    <Typography variant="overline">
+                        {`Total Active Providers: ${defaultProviderCount}`}
+                    </Typography>
+                </Box>
+                <Box>
+                    <Grid container spacing={0.5} alignItems="stretch">
+                    {Object.entries(providerRegions).map(([provider, data]) => (
+                        <Grid item xs="auto"><Paper>
+                        <Typography className="px-2" variant="h6">{provider}</Typography>
+                        <Box className="p-2">
+                        {Object.entries(data).map(([_, data]) => (
+                            <Chip className="mx-1" size="small" 
+                                label={data.region} />
+                        ))}
+                        </Box>
+                        </Paper></Grid>
+                    ))}
+                    </Grid>
+                </Box>
+            </Stack>
+                
             </div>
             {Object.entries(groupedItems).map(([itemIndex, items]) => (
                 <Grid item xs={12} md={12} key={itemIndex} m={1}>
