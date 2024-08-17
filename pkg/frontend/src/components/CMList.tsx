@@ -1,5 +1,5 @@
-import { ExpandMore as ExpandMoreIcon} from '@mui/icons-material';
-import {Tooltip, Paper, Box, Card, CardContent, Grid, CardActionArea, Button, Stack, Accordion, AccordionSummary, AccordionDetails} from '@mui/material';
+import { ExpandMore as ExpandMoreIcon, DeleteForever as DeleteForeverIcon} from '@mui/icons-material';
+import {Chip as MuChip, Tooltip, Paper, Box, Card, CardContent, Grid, CardActionArea, Button, Stack, Accordion, AccordionSummary, AccordionDetails} from '@mui/material';
 import {ItemList, CM, K8sResource} from "../types.ts";
 import Typography from "@mui/material/Typography";
 import {useNavigate, useParams} from "react-router-dom";
@@ -13,6 +13,12 @@ import { colors } from "@material-tailwind/react/types/generic";
 type CMListItemProps = {
     item: CM;
     onItemClick: { (item: CM): void }
+};
+
+const copyToClipboard = (name: string) => {
+    navigator.clipboard.writeText(name).then(() => {}, (err) => {
+        console.error('Could not copy text: ', err);
+    });
 };
 
 function getColorFromLabel(label: string): colors | undefined {
@@ -130,6 +136,7 @@ export default function CMList({items}: CMListProps) {
 
 
     // Define Grouped ConfigMaps
+    // e.g. { "provider-vars-aws": [CM1, CM2], "optimizer": [CM3, CM4] }
     const groupedCMs: { [itemIndex: string]: CM[] } = {};
 
     type ProviderData = {
@@ -140,11 +147,13 @@ export default function CMList({items}: CMListProps) {
         zone?: string
     }
     const providers: { [providerName: string]: ProviderData[] } = {};
+    const providerNames: { [providerName: string]: string[] } = {};
     let defaultProviderCount = 0;
 
     // define a list of strings
     const regionList: CM[] = [];
     
+    // Prepare the variables
     items.items.forEach((item) => {
         const pConfigType = "skycluster-manager.savitestbed.ca/config-type"
         const pNameSelector = "skycluster-manager.savitestbed.ca/provider-name"
@@ -156,6 +165,7 @@ export default function CMList({items}: CMListProps) {
         // check if configType is "provider-vars" and if so append the provider-name
         if (configType == "provider-vars") {
             // This is a provider configmap, we should group by provider name
+            const providerIdentifier = item.metadata.name
             const providerName = item.metadata?.labels?.[pNameSelector] ?? "";
             const providerRegion = item.metadata?.annotations?.[pRegionSelector];
             const providerZone = item.metadata?.annotations?.[pZoneSelector];
@@ -170,6 +180,7 @@ export default function CMList({items}: CMListProps) {
             // e.g. providers["aws"] = []
             if (!providers[providerName]) {
                 providers[providerName] = [];
+                providerNames[providerName] = [];
             }
             // Add the current provider to the list of providers if it doesn't exist
             // e.g. providers["aws"] = [{name: "aws", region: "us-west-2", skyClusterRegion: "us-west"}]
@@ -182,6 +193,13 @@ export default function CMList({items}: CMListProps) {
                     skyClusterRegion: providerSkyClusterRegion,
                 });
             }
+
+            // providers names: 
+            // e.g. providerNames["aws"] = ["vars-aws-us-east1-cac1-az1", "vars-aws-us-east1-cac1-az2"]
+            if (!providerNames[providerName].includes(providerIdentifier)) {
+                providerNames[providerName].push(providerIdentifier);
+            }
+
             // Ignore if the zone is "default" or the region is "global"
             // These are used for internal purposes and should not be displayed
             providerZone == "default" && providerRegion != "global" ? defaultProviderCount++ : null;
@@ -199,6 +217,11 @@ export default function CMList({items}: CMListProps) {
     const collapseAll = () => {
         setExpandedItems({});
     };
+
+    type objectData = {
+        apiVersion: string,
+        name: string,
+    }
 
     const getApiVersion = (items: CM[]): string => {
         if (items.length === 0) {
@@ -248,7 +271,7 @@ export default function CMList({items}: CMListProps) {
             <Stack spacing={2} className="my-8">
                 <Box>
                     <Paper className="p-2">
-                        <Typography variant="h6" className="py-2">Regions</Typography>
+                        <Typography variant="h6" className="py-2">Regions Overview</Typography>
                         <Card variant="outlined" className="p-1">
                         <Grid container spacing={1} alignItems="stretch" className="py-1" >
                         {Object.entries(regionList).map(([_, item]) => (
@@ -268,7 +291,7 @@ export default function CMList({items}: CMListProps) {
                 </Box>
                 <Box>
                     <Paper className="p-2">
-                    <Typography variant="h6" className="py-2">Providers</Typography>
+                    <Typography variant="h6" className="py-2">Providers Overview</Typography>
                     <Grid container spacing={0.5} alignItems="stretch">
                     {Object.entries(providers).map(([providerName, pdata]) => (
                         <Grid item xs="auto" key={providerName}>
@@ -287,23 +310,74 @@ export default function CMList({items}: CMListProps) {
                     </Grid>
                     </Paper>
                 </Box>
-            </Stack>
                 
-            <Stack spacing={2} className="my-8">
-            {Object.entries(groupedCMs).map(([itemIndex, items]) => (
-                <Accordion key={itemIndex} expanded={expandedItems[itemIndex] || false} onChange={() => handleAccordionChange(itemIndex)}>
-                <AccordionSummary expandIcon={<ExpandMoreIcon/>}>
-                    <Typography variant="h6">{getApiVersion(items)}</Typography>
-                </AccordionSummary>
-                <AccordionDetails>
-                    <Grid container spacing={2}>
-                    {items?.map((item: CM) => (
-                        <CMListItem item={item} key={item.metadata.name} onItemClick={onItemClick}/>
+                <Paper className="p-4">
+                    <Typography variant="h6" className="py-2">Providers Details</Typography>
+                    {Object.entries(groupedCMs).filter(([idx, _]) => idx.includes('provider-vars')).map(([itemIndex, items]) => (
+                        <Accordion key={itemIndex} expanded={expandedItems[itemIndex] || false} onChange={() => handleAccordionChange(itemIndex)}>
+                        <AccordionSummary expandIcon={<ExpandMoreIcon/>}>
+                            <Typography variant="h6">{getApiVersion(items)}</Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
+                            <Grid container spacing={2}>
+                            {items?.map((item: CM) => (
+                                <CMListItem item={item} key={item.metadata.name} onItemClick={onItemClick}/>
+                            ))}
+                            </Grid>
+                            <Box className="mt-2"><MuChip 
+                                icon={<DeleteForeverIcon />} size="small" label="Delete All" variant="outlined" color="error"
+                                onClick={() => 
+                                    copyToClipboard(
+                                "kubectl delete cm " + providerNames[getApiVersion(items).toLowerCase()].join(' '))} />
+                            </Box>
+                        </AccordionDetails>
+                        </Accordion>
                     ))}
-                    </Grid>
-                </AccordionDetails>
-                </Accordion>
-            ))}
+                </Paper>
+                <Paper className="p-4">
+                {Object.entries(groupedCMs).filter(([idx, _]) => idx.includes('region-vars')).map(([itemIndex, items]) => (
+                    <Accordion key={itemIndex} expanded={expandedItems[itemIndex] || false} onChange={() => handleAccordionChange(itemIndex)}>
+                    <AccordionSummary expandIcon={<ExpandMoreIcon/>}>
+                        <Typography variant="h6">{getApiVersion(items)}</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <Grid container spacing={2}>
+                        {items?.map((item: CM) => (
+                            <CMListItem item={item} key={item.metadata.name} onItemClick={onItemClick}/>
+                        ))}
+                        </Grid>
+                        <Box className="mt-2"><MuChip 
+                            icon={<DeleteForeverIcon />} size="small" label="Delete All" variant="outlined" color="error"
+                            onClick={() => 
+                                copyToClipboard(
+                            "kubectl delete cm " + providerNames[getApiVersion(items).toLowerCase()].join(' '))} />
+                        </Box>
+                    </AccordionDetails>
+                    </Accordion>
+                ))}
+                </Paper>
+                <Paper className="p-4">
+                {Object.entries(groupedCMs).filter(([idx, _]) => idx.includes('optimizer')).map(([itemIndex, items]) => (
+                    <Accordion key={itemIndex} expanded={expandedItems[itemIndex] || false} onChange={() => handleAccordionChange(itemIndex)}>
+                    <AccordionSummary expandIcon={<ExpandMoreIcon/>}>
+                        <Typography variant="h6">{getApiVersion(items)}</Typography>
+                    </AccordionSummary>
+                    <AccordionDetails>
+                        <Grid container spacing={2}>
+                        {items?.map((item: CM) => (
+                            <CMListItem item={item} key={item.metadata.name} onItemClick={onItemClick}/>
+                        ))}
+                        </Grid>
+                        <Box className="mt-2"><MuChip 
+                            icon={<DeleteForeverIcon />} size="small" label="Delete All" variant="outlined" color="error"
+                            onClick={() => 
+                                copyToClipboard(
+                            "kubectl delete cm " + providerNames[getApiVersion(items).toLowerCase()].join(' '))} />
+                        </Box>
+                    </AccordionDetails>
+                    </Accordion>
+                ))}
+                </Paper>
             </Stack>
         </div>
         <InfoDrawer isOpen={isDrawerOpen} onClose={onClose} type="ConfigMaps" title={bridge.curItem.metadata.name}>
