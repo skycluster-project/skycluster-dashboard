@@ -1,11 +1,13 @@
 import { ExpandMore as ExpandMoreIcon} from '@mui/icons-material';
-import {Tooltip, Paper, Box, Card, Chip, CardContent, Grid, CardActionArea, Button, Stack, Accordion, AccordionSummary, AccordionDetails} from '@mui/material';
+import {Tooltip, Paper, Box, Card, CardContent, Grid, CardActionArea, Button, Stack, Accordion, AccordionSummary, AccordionDetails} from '@mui/material';
 import {ItemList, CM, K8sResource} from "../types.ts";
 import Typography from "@mui/material/Typography";
 import {useNavigate, useParams} from "react-router-dom";
 import {useState} from "react";
 import InfoTabs, {ItemContext} from "./InfoTabs.tsx";
 import InfoDrawer from "./InfoDrawer.tsx";
+import { Chip } from "@material-tailwind/react";
+import { colors } from "@material-tailwind/react/types/generic";
 
 
 type CMListItemProps = {
@@ -13,24 +15,54 @@ type CMListItemProps = {
     onItemClick: { (item: CM): void }
 };
 
+function getColorFromLabel(label: string): colors | undefined {
+    const colors: colors[] = ["blue-gray", "gray", "brown", "deep-orange", "orange", "amber", "yellow", "lime", "light-green", "green", 
+        "teal", "cyan", "light-blue", "blue", "indigo", "deep-purple", "purple", "pink", "red"];
+    if (!label || typeof label !== 'string') return undefined;
+  
+    // Get the first two letters of the label
+    const key = label.substring(0, 2).toLowerCase();
+  
+    // Create a hash from the key
+    let hash = 0;
+    for (let i = 0; i < key.length; i++) {
+      hash += key.charCodeAt(i);
+    }
+  
+    // Map the hash to an index in the colors 
+    // There are 19 colors currently
+    const index = hash % colors.length;
+    console.log(label, hash, index)
+  
+    return colors[index];
+  }
+
 function CMListItem({item, onItemClick}: CMListItemProps) {
+    const itemConfigType = item.metadata.annotations?.["skycluster-manager.savitestbed.ca/config-type"];
     const providerName = item.metadata.annotations?.["skycluster-manager.savitestbed.ca/provider-name"];
     const providerRegion = item.metadata.annotations?.["skycluster-manager.savitestbed.ca/provider-region"];
     const providerZone = item.metadata.annotations?.["skycluster-manager.savitestbed.ca/provider-zone"];
     return (
-       <Grid item xs={12} md={6} lg={6} xl={4} key={item.metadata.name} onClick={() => {onItemClick(item)}} >
+       <Grid item xs={12} md={3} key={item.metadata.name} onClick={() => {onItemClick(item)}} >
             <Card variant="outlined" className="cursor-pointer">
                 <CardActionArea>
                     <CardContent>
-                        <Typography variant="h6" display="inline" style={{ textTransform: 'uppercase' }}>{providerName}</Typography>
-                        {providerRegion && (
-                            <Chip className="mx-2" size="small" 
-                            label={providerRegion} />
+                        { itemConfigType == "provider-vars" && (
+                            <>
+                            <Typography variant="h6" display="inline" style={{ textTransform: 'uppercase' }}>{providerName}</Typography>
+                            <Stack direction="row" spacing={1}>
+                                {providerRegion && (
+                                    <Chip variant="ghost" size="sm" value={providerRegion} />
+                                )}
+                                {providerZone == "default" && (
+                                    <Chip variant="ghost" color="blue" size="sm" value="DEFAULT"/>
+                                )}
+                            </Stack>
+                            </>
                         )}
-                        {providerZone == "default" && (
-                            <Chip className="mx-1" color="primary" size="small" label="DEFAULT"/>
+                        { itemConfigType == "optimizer" && (
+                            <Typography variant="body1" display="inline">{item.metadata.name}</Typography>
                         )}
-                        <Typography variant="body1">{item.metadata.name}</Typography>
                     </CardContent>
                 </CardActionArea>
             </Card>
@@ -188,28 +220,29 @@ export default function CMList({items}: CMListProps) {
     };
 
     return (
-        <>
-            <div className="m-2">
-            <Stack spacing={2}>
-                <Box>
-                    <span className="mx-1"><Button variant="outlined" onClick={expandAll}>Expand All</Button></span>
-                    <span className="mx-1"><Button variant="outlined" onClick={collapseAll}>Collapse All</Button></span>
-                </Box>
-                <Box>
-                    <Typography variant="button">
-                        {`Total Active Providers: ${defaultProviderCount}`}
-                    </Typography>
-                </Box>
+        <><div className="m-2">
+            <Stack spacing={1} direction="row">
+                <span><Button variant="outlined" onClick={expandAll}>Expand All</Button></span>
+                <span><Button variant="outlined" onClick={collapseAll}>Collapse All</Button></span>
+            </Stack>
+            <Stack spacing={1} className="my-2" direction="row">
+                <Typography variant="button">
+                    {`Total Active Providers: ${defaultProviderCount}`}
+                </Typography>
+            </Stack>
+            <Stack spacing={2} className="my-8">
                 <Box>
                     <Paper className="p-2">
-                        <Typography variant="h6">Regions</Typography>
-                        <Card variant="outlined">
-                        <Grid container spacing={0.5} alignItems="stretch" className="py-1" >
+                        <Typography variant="h6" className="py-2">Regions</Typography>
+                        <Card variant="outlined" className="p-1">
+                        <Grid container spacing={1} alignItems="stretch" className="py-1" >
                         {Object.entries(regionList).map(([_, item]) => (
-                            <Grid item xs="auto" className="py-1" >
+                            <Grid item xs="auto">
                                 <Box display="flex" alignItems="center" >
                                 <Tooltip title={item.data["region-fullname"]} >
-                                    <Chip className="mx-1" label={item.data["region-name"]} />
+                                    <Chip className="mx-1" variant="ghost" 
+                                        color={getColorFromLabel(item.data["region-name"])}
+                                        value={item.data["region-name"]} />
                                 </Tooltip>
                                 </Box>
                             </Grid>
@@ -220,7 +253,7 @@ export default function CMList({items}: CMListProps) {
                 </Box>
                 <Box>
                     <Paper className="p-2">
-                    <Typography variant="h6">Providers</Typography>
+                    <Typography variant="h6" className="py-2">Providers</Typography>
                     <Grid container spacing={0.5} alignItems="stretch">
                     {Object.entries(providers).map(([providerName, pdata]) => (
                         <Grid item xs="auto">
@@ -230,8 +263,7 @@ export default function CMList({items}: CMListProps) {
                             {Object.entries(pdata).map(([_, data]) => (
                                 data.region != "global" &&
                                 <Tooltip title={data.skyClusterRegion} >
-                                <Chip className="mx-1" size="small" 
-                                    label={data.region} />
+                                <Chip variant="ghost" className="m-1" size="sm" value={data.region} />
                                 </Tooltip>
                             ))}
                             </Box>
@@ -242,26 +274,26 @@ export default function CMList({items}: CMListProps) {
                 </Box>
             </Stack>
                 
-            </div>
+            <Stack spacing={2} className="my-8">
             {Object.entries(groupedCMs).map(([itemIndex, items]) => (
-                <Grid item xs={12} md={12} key={itemIndex} m={1}>
-                    <Accordion key={itemIndex} expanded={expandedItems[itemIndex] || false} onChange={() => handleAccordionChange(itemIndex)}>
-                    <AccordionSummary expandIcon={<ExpandMoreIcon/>}>
-                        <Stack direction="row" spacing={1}>
-                            <Typography sx={{pt: '3px'}} variant="overline">{getApiVersion(items)}</Typography>
-                        </Stack>
-                    </AccordionSummary>
-                    <AccordionDetails>
-                            {items?.map((item: CM) => (
-                                <CMListItem item={item} key={item.metadata.name} onItemClick={onItemClick}/>
-                            ))}
-                    </AccordionDetails>
-                    </Accordion>
-                </Grid>
+                <Accordion key={itemIndex} expanded={expandedItems[itemIndex] || false} onChange={() => handleAccordionChange(itemIndex)}>
+                <AccordionSummary expandIcon={<ExpandMoreIcon/>}>
+                    <Typography variant="h6">{getApiVersion(items)}</Typography>
+                </AccordionSummary>
+                <AccordionDetails>
+                    <Grid container spacing={2}>
+                    {items?.map((item: CM) => (
+                        <CMListItem item={item} key={item.metadata.name} onItemClick={onItemClick}/>
+                    ))}
+                    </Grid>
+                </AccordionDetails>
+                </Accordion>
             ))}
-            <InfoDrawer isOpen={isDrawerOpen} onClose={onClose} type="ConfigMaps" title={bridge.curItem.metadata.name}>
-                <InfoTabs bridge={bridge} noStatus={true} noEvents={true} noRelations={true} initial="yaml"></InfoTabs>
-            </InfoDrawer>
+            </Stack>
+        </div>
+        <InfoDrawer isOpen={isDrawerOpen} onClose={onClose} type="ConfigMaps" title={bridge.curItem.metadata.name}>
+            <InfoTabs bridge={bridge} noStatus={true} noEvents={true} noRelations={true} initial="yaml"></InfoTabs>
+        </InfoDrawer>
         </>
     );
 }
