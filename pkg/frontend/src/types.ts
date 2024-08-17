@@ -49,7 +49,9 @@ export type K8sResource = {
     status?: Status
 }
 
-export type CM = K8sResource
+export type CM = K8sResource & {
+    data: { [key: string]: string }
+}
 
 export type CRD = K8sResource & {
     spec: {

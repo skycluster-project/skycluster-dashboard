@@ -1,5 +1,5 @@
 import { ExpandMore as ExpandMoreIcon} from '@mui/icons-material';
-import {Paper, Box, Card, Chip, CardContent, Grid, CardActionArea, Button, Stack, Accordion, AccordionSummary, AccordionDetails} from '@mui/material';
+import {Tooltip, Paper, Box, Card, Chip, CardContent, Grid, CardActionArea, Button, Stack, Accordion, AccordionSummary, AccordionDetails} from '@mui/material';
 import {ItemList, CM, K8sResource} from "../types.ts";
 import Typography from "@mui/material/Typography";
 import {useNavigate, useParams} from "react-router-dom";
@@ -86,37 +86,71 @@ export default function CMList({items}: CMListProps) {
     }
 
 
-    // Define groupedItems
-    const groupedItems: { [itemIndex: string]: CM[] } = {};
+    // Define Grouped ConfigMaps
+    const groupedCMs: { [itemIndex: string]: CM[] } = {};
+
     type ProviderData = {
+        identifier: string
         name: string
+        skyClusterRegion?: string
         region?: string
         zone?: string
     }
-    const providerRegions: { [provider: string]: ProviderData[] } = {};
+    const providers: { [providerName: string]: ProviderData[] } = {};
     let defaultProviderCount = 0;
+
+    // define a list of strings
+    const regionList: CM[] = [];
     
     items.items.forEach((item) => {
-        let itemIndex = item.metadata?.annotations?.["skycluster-manager.savitestbed.ca/config-type"] ?? 'NoType';
-        // check if itemIndex is "provider-vars" and if so append the provider-name
-        if (itemIndex == "provider-vars") {
-            const providerName = item.metadata?.labels?.["provider-name"] ?? "";
+        const pConfigType = "skycluster-manager.savitestbed.ca/config-type"
+        const pNameSelector = "skycluster-manager.savitestbed.ca/provider-name"
+        const pRegionSelector = "skycluster-manager.savitestbed.ca/provider-region"
+        const pZoneSelector = "skycluster-manager.savitestbed.ca/provider-zone"
+        const pSkyClusterRegion = "skycluster-manager.savitestbed.ca/skycluster-region"
+        let configType = item.metadata?.annotations?.[pConfigType] ?? 'NoType';
+        
+        // check if configType is "provider-vars" and if so append the provider-name
+        if (configType == "provider-vars") {
+            // This is a provider configmap, we should group by provider name
+            const providerName = item.metadata?.labels?.[pNameSelector] ?? "";
+            const providerRegion = item.metadata?.annotations?.[pRegionSelector];
+            const providerZone = item.metadata?.annotations?.[pZoneSelector];
+            const providerSkyClusterRegion = item.metadata?.annotations?.[pSkyClusterRegion];
+
             if (providerName != "") {
-                itemIndex += `-${providerName}`;
+                // Construct the configs for this provider (e.g. provider-vars-aws)
+                configType += `-${providerName}`;
             }
-            if (!providerRegions[providerName]) {
-                providerRegions[providerName] = [];
+
+            // Add the provider to the list of providers if it doesn't exist
+            // e.g. providers["aws"] = []
+            if (!providers[providerName]) {
+                providers[providerName] = [];
             }
-            const providerRegion = item.metadata?.annotations?.["skycluster-manager.savitestbed.ca/provider-region"];
-            if (!providerRegions[providerName].find((data) => data.name == providerName && data.region == providerRegion)) {                
-                providerRegions[providerName].push({name: providerName, region: providerRegion});
+            // Add the current provider to the list of providers if it doesn't exist
+            // e.g. providers["aws"] = [{name: "aws", region: "us-west-2", skyClusterRegion: "us-west"}]
+            // console.log(providerName, providerRegion, providerZone, providerSkyClusterRegion)
+            if (!providers[providerName].find((pdata) => pdata.identifier == providerName + providerRegion)) {                
+                providers[providerName].push({
+                    identifier: providerName + providerRegion, 
+                    name: providerName, 
+                    region: providerRegion,
+                    skyClusterRegion: providerSkyClusterRegion,
+                });
             }
-            item.metadata?.annotations?.["skycluster-manager.savitestbed.ca/provider-zone"] == "default" ? defaultProviderCount++ : null;
+            // Ignore if the zone is "default" or the region is "global"
+            // These are used for internal purposes and should not be displayed
+            providerZone == "default" && providerRegion != "global" ? defaultProviderCount++ : null;
+
+        } else if (configType === "region-vars") {
+            // This is a region configmap, we should keep the region name
+            regionList.push(item);
         }
-        if (!groupedItems[itemIndex]) {
-            groupedItems[itemIndex] = [];
+        if (!groupedCMs[configType]) {
+            groupedCMs[configType] = [];
         }
-        groupedItems[itemIndex].push(item);
+        groupedCMs[configType].push(item);
     });
 
     const collapseAll = () => {
@@ -139,7 +173,7 @@ export default function CMList({items}: CMListProps) {
     };
 
     const expandAll = () => {
-        const expandedState = Object.keys(groupedItems).reduce((acc: Record<string, boolean>, itemIndex: string) => {
+        const expandedState = Object.keys(groupedCMs).reduce((acc: Record<string, boolean>, itemIndex: string) => {
             acc[itemIndex] = true;
             return acc;
         }, {});
@@ -162,29 +196,54 @@ export default function CMList({items}: CMListProps) {
                     <span className="mx-1"><Button variant="outlined" onClick={collapseAll}>Collapse All</Button></span>
                 </Box>
                 <Box>
-                    <Typography variant="overline">
+                    <Typography variant="button">
                         {`Total Active Providers: ${defaultProviderCount}`}
                     </Typography>
                 </Box>
                 <Box>
-                    <Grid container spacing={0.5} alignItems="stretch">
-                    {Object.entries(providerRegions).map(([provider, data]) => (
-                        <Grid item xs="auto"><Paper>
-                        <Typography className="px-2" variant="h6">{provider}</Typography>
-                        <Box className="p-2">
-                        {Object.entries(data).map(([_, data]) => (
-                            <Chip className="mx-1" size="small" 
-                                label={data.region} />
+                    <Paper className="p-2">
+                        <Typography variant="h6">Regions</Typography>
+                        <Card variant="outlined">
+                        <Grid container spacing={0.5} alignItems="stretch" className="py-1" >
+                        {Object.entries(regionList).map(([_, item]) => (
+                            <Grid item xs="auto" className="py-1" >
+                                <Box display="flex" alignItems="center" >
+                                <Tooltip title={item.data["region-fullname"]} >
+                                    <Chip className="mx-1" label={item.data["region-name"]} />
+                                </Tooltip>
+                                </Box>
+                            </Grid>
                         ))}
-                        </Box>
-                        </Paper></Grid>
+                        </Grid>
+                        </Card>
+                    </Paper>
+                </Box>
+                <Box>
+                    <Paper className="p-2">
+                    <Typography variant="h6">Providers</Typography>
+                    <Grid container spacing={0.5} alignItems="stretch">
+                    {Object.entries(providers).map(([providerName, pdata]) => (
+                        <Grid item xs="auto">
+                        <Card variant="outlined" className="p-0">
+                            <Typography className="px-2" variant="h6">{providerName}</Typography>
+                            <Box className="p-2">
+                            {Object.entries(pdata).map(([_, data]) => (
+                                data.region != "global" &&
+                                <Tooltip title={data.skyClusterRegion} >
+                                <Chip className="mx-1" size="small" 
+                                    label={data.region} />
+                                </Tooltip>
+                            ))}
+                            </Box>
+                        </Card></Grid>
                     ))}
                     </Grid>
+                    </Paper>
                 </Box>
             </Stack>
                 
             </div>
-            {Object.entries(groupedItems).map(([itemIndex, items]) => (
+            {Object.entries(groupedCMs).map(([itemIndex, items]) => (
                 <Grid item xs={12} md={12} key={itemIndex} m={1}>
                     <Accordion key={itemIndex} expanded={expandedItems[itemIndex] || false} onChange={() => handleAccordionChange(itemIndex)}>
                     <AccordionSummary expandIcon={<ExpandMoreIcon/>}>
