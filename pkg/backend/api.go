@@ -37,7 +37,12 @@ func NewRouter(data *Controller, debug bool) *echo.Echo {
 			return nil
 		},
 	}))
-
+	if os.Getenv("GO_ENV") == "dev" {
+		api.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+			AllowOrigins: []string{"http://localhost:5173"},
+			AllowMethods: []string{echo.GET, echo.PUT, echo.POST, echo.DELETE},
+		}))
+	}
 	api.Use(errSet500)
 	api.Use(slowness)
 
