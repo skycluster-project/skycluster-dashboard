@@ -32,7 +32,6 @@ function getColorFromLabel(label: string): colors | undefined {
     // Map the hash to an index in the colors 
     // There are 19 colors currently
     const index = hash % colors.length;
-    console.log(label, hash, index)
   
     return colors[index];
   }
@@ -49,19 +48,31 @@ function CMListItem({item, onItemClick}: CMListItemProps) {
                     <CardContent>
                         { itemConfigType == "provider-vars" && (
                             <>
-                            <Typography variant="h6" display="inline" style={{ textTransform: 'uppercase' }}>{providerName}</Typography>
-                            <Stack direction="row" spacing={1}>
+                            <Stack direction="row" spacing={1} className="mb-1">
                                 {providerRegion && (
-                                    <Chip variant="ghost" size="sm" value={providerRegion} />
+                                    <>
+                                    <Typography variant="body2">Region:</Typography>
+                                    <Chip variant="ghost" size="sm" value={providerRegion} /> 
+                                    </>
                                 )}
-                                {providerZone == "default" && (
-                                    <Chip variant="ghost" color="blue" size="sm" value="DEFAULT"/>
+                            </Stack>
+                            <Stack direction="row" spacing={1}>
+                                {providerZone && providerZone == "default" ? (
+                                    <Chip variant="ghost" color="blue" size="sm" value={providerZone}/>
+                                ) : (
+                                    <>
+                                    <Typography variant="body2">Zone:</Typography>
+                                    <Chip variant="ghost" size="sm" value={providerZone}/>
+                                    </>
                                 )}
                             </Stack>
                             </>
                         )}
                         { itemConfigType == "optimizer" && (
-                            <Typography variant="body1" display="inline">{item.metadata.name}</Typography>
+                            <Typography variant="body2" display="inline">{item.metadata.name}</Typography>
+                        )}
+                        { itemConfigType == "region-vars" && (
+                            <Typography variant="body2" display="inline">{item.metadata.name}</Typography>
                         )}
                     </CardContent>
                 </CardActionArea>
@@ -152,7 +163,7 @@ export default function CMList({items}: CMListProps) {
 
             if (providerName != "") {
                 // Construct the configs for this provider (e.g. provider-vars-aws)
-                configType += `-${providerName}`;
+                configType += `${providerName}`;
             }
 
             // Add the provider to the list of providers if it doesn't exist
@@ -198,8 +209,12 @@ export default function CMList({items}: CMListProps) {
         if (configType === "provider-vars") {
             const providerName = items[0].metadata?.labels?.["provider-name"];
             if (providerName) {
-                configType += `-${providerName}`;
+                configType = `${providerName.toUpperCase()}`;
             }
+        } else if (configType === "optimizer") {
+            configType = "Optimizer";
+        } else if (configType === "region-vars") {
+            configType = "Regions Configs";
         }
         return configType;
     };
@@ -237,7 +252,7 @@ export default function CMList({items}: CMListProps) {
                         <Card variant="outlined" className="p-1">
                         <Grid container spacing={1} alignItems="stretch" className="py-1" >
                         {Object.entries(regionList).map(([_, item]) => (
-                            <Grid item xs="auto">
+                            <Grid item xs="auto" key={item.data["region-name"]}>
                                 <Box display="flex" alignItems="center" >
                                 <Tooltip title={item.data["region-fullname"]} >
                                     <Chip className="mx-1" variant="ghost" 
@@ -256,13 +271,13 @@ export default function CMList({items}: CMListProps) {
                     <Typography variant="h6" className="py-2">Providers</Typography>
                     <Grid container spacing={0.5} alignItems="stretch">
                     {Object.entries(providers).map(([providerName, pdata]) => (
-                        <Grid item xs="auto">
+                        <Grid item xs="auto" key={providerName}>
                         <Card variant="outlined" className="p-0">
                             <Typography className="px-2" variant="h6">{providerName}</Typography>
                             <Box className="p-2">
                             {Object.entries(pdata).map(([_, data]) => (
                                 data.region != "global" &&
-                                <Tooltip title={data.skyClusterRegion} >
+                                <Tooltip title={data.skyClusterRegion} key={data.identifier}>
                                 <Chip variant="ghost" className="m-1" size="sm" value={data.region} />
                                 </Tooltip>
                             ))}
