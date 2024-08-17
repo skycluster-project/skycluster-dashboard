@@ -145,6 +145,7 @@ export default function CMList({items}: CMListProps) {
         skyClusterRegion?: string
         region?: string
         zone?: string
+        type?: string
     }
     const providers: { [providerName: string]: ProviderData[] } = {};
     const providerNames: { [providerName: string]: string[] } = {};
@@ -158,6 +159,7 @@ export default function CMList({items}: CMListProps) {
         const pConfigType = "skycluster-manager.savitestbed.ca/config-type"
         const pNameSelector = "skycluster-manager.savitestbed.ca/provider-name"
         const pRegionSelector = "skycluster-manager.savitestbed.ca/provider-region"
+        const pTypeSelector = "skycluster-manager.savitestbed.ca/provider-type"
         const pZoneSelector = "skycluster-manager.savitestbed.ca/provider-zone"
         const pSkyClusterRegion = "skycluster-manager.savitestbed.ca/skycluster-region"
         let configType = item.metadata?.annotations?.[pConfigType] ?? 'NoType';
@@ -168,6 +170,7 @@ export default function CMList({items}: CMListProps) {
             const providerIdentifier = item.metadata.name
             const providerName = item.metadata?.labels?.[pNameSelector] ?? "";
             const providerRegion = item.metadata?.annotations?.[pRegionSelector];
+            const providerType = item.metadata?.annotations?.[pTypeSelector];
             const providerZone = item.metadata?.annotations?.[pZoneSelector];
             const providerSkyClusterRegion = item.metadata?.annotations?.[pSkyClusterRegion];
 
@@ -191,6 +194,7 @@ export default function CMList({items}: CMListProps) {
                     name: providerName, 
                     region: providerRegion,
                     skyClusterRegion: providerSkyClusterRegion,
+                    type: providerType,
                 });
             }
 
@@ -292,19 +296,49 @@ export default function CMList({items}: CMListProps) {
                 <Box>
                     <Paper className="p-2">
                     <Typography variant="h6" className="py-2">Providers Overview</Typography>
+                    <Stack direction="row" spacing={1} className="py-2">
+                        <Box className="p-1">
+                            <Typography variant="caption">Color Guide:</Typography>
+                        </Box>
+                        <Chip variant="ghost" className="m-1" color="light-blue" size="sm" value="Cloud (<50ms)" />
+                        <Chip variant="ghost" className="m-1" color="lime" size="sm" value="Near The Edge (<10ms)" />
+                        <Chip variant="ghost" className="m-1" color="red" size="sm" value="Edge (<1ms)" />
+                    </Stack>
                     <Grid container spacing={0.5} alignItems="stretch">
                     {Object.entries(providers).map(([providerName, pdata]) => (
                         <Grid item xs="auto" key={providerName}>
                         <Card variant="outlined" className="p-0">
                             <Typography className="px-2" variant="h6">{providerName}</Typography>
-                            <Box className="p-2">
-                            {Object.entries(pdata).map(([_, data]) => (
-                                data.region != "global" &&
-                                <Tooltip title={data.skyClusterRegion} key={data.identifier}>
-                                <Chip variant="ghost" className="m-1" size="sm" value={data.region} />
-                                </Tooltip>
-                            ))}
-                            </Box>
+                            {Object.entries(pdata).find(([_, data]) => data.type == "cloud") &&
+                                <Box className="m-1" sx={{ 'background-color': 'rgb(3 169 244 / 0.2)' }}>
+                                {Object.entries(pdata).filter(([_, data]) => data.type == "cloud").map(([_, data]) => (
+                                    data.region != "global" &&
+                                    <Tooltip title={data.skyClusterRegion} key={data.identifier}>
+                                    <Chip variant="ghost" className="m-1" size="sm" value={data.region} />
+                                    </Tooltip>
+                                ))}
+                                </Box>
+                            }
+                            {Object.entries(pdata).find(([_, data]) => data.type == "near-the-edge") &&
+                                <Box className="m-1" sx={{ 'background-color': 'rgb(205 220 57 / 0.2)' }}>
+                                {Object.entries(pdata).filter(([_, data]) => data.type == "near-the-edge").map(([_, data]) => (
+                                    data.region != "global" &&
+                                    <Tooltip title={data.skyClusterRegion} key={data.identifier}>
+                                    <Chip variant="ghost" className="m-1" size="sm" value={data.region} />
+                                    </Tooltip>
+                                ))}
+                                </Box>
+                            }
+                            {Object.entries(pdata).find(([_, data]) => data.type == "edge") &&
+                                <Box className="m-1" sx={{ 'background-color': 'rgb(244 67 54 / 0.2)' }}>
+                                {Object.entries(pdata).filter(([_, data]) => data.type == "edge").map(([_, data]) => (
+                                    data.region != "global" &&
+                                    <Tooltip title={data.skyClusterRegion} key={data.identifier}>
+                                    <Chip variant="ghost" className="m-1" size="sm" value={data.region} />
+                                    </Tooltip>
+                                ))}
+                                </Box>
+                            }
                         </Card></Grid>
                     ))}
                     </Grid>
