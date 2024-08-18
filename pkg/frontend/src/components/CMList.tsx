@@ -310,31 +310,31 @@ export default function CMList({items}: CMListProps) {
                         <Card variant="outlined" className="p-0">
                             <Typography className="px-2" variant="h6">{providerName}</Typography>
                             {Object.entries(pdata).find(([_, data]) => data.type == "cloud") &&
-                                <Box className="m-1" sx={{ 'background-color': 'rgb(3 169 244 / 0.2)' }}>
+                                <Box className="m-1" sx={{ padding: '0.005rem','background-color': 'rgb(3 169 244 / 0.2)' }}>
                                 {Object.entries(pdata).filter(([_, data]) => data.type == "cloud").map(([_, data]) => (
                                     data.region != "global" &&
                                     <Tooltip title={data.skyClusterRegion} key={data.identifier}>
-                                    <Chip variant="ghost" className="m-1" size="sm" value={data.region} />
+                                    <Chip variant="outlined" className="m-1" size="sm" value={data.region} />
                                     </Tooltip>
                                 ))}
                                 </Box>
                             }
                             {Object.entries(pdata).find(([_, data]) => data.type == "near-the-edge") &&
-                                <Box className="m-1" sx={{ 'background-color': 'rgb(205 220 57 / 0.2)' }}>
+                                <Box className="m-1" sx={{ padding: '0.005rem', 'background-color': 'rgb(205 220 57 / 0.2)' }}>
                                 {Object.entries(pdata).filter(([_, data]) => data.type == "near-the-edge").map(([_, data]) => (
                                     data.region != "global" &&
                                     <Tooltip title={data.skyClusterRegion} key={data.identifier}>
-                                    <Chip variant="ghost" className="m-1" size="sm" value={data.region} />
+                                    <Chip variant="outlined" className="m-1" size="sm" value={data.region} />
                                     </Tooltip>
                                 ))}
                                 </Box>
                             }
                             {Object.entries(pdata).find(([_, data]) => data.type == "edge") &&
-                                <Box className="m-1" sx={{ 'background-color': 'rgb(244 67 54 / 0.2)' }}>
+                                <Box className="m-1" sx={{ padding: '0.005rem', 'background-color': 'rgb(244 67 54 / 0.2)' }}>
                                 {Object.entries(pdata).filter(([_, data]) => data.type == "edge").map(([_, data]) => (
                                     data.region != "global" &&
                                     <Tooltip title={data.skyClusterRegion} key={data.identifier}>
-                                    <Chip variant="ghost" className="m-1" size="sm" value={data.region} />
+                                    <Chip variant="outlined" className="m-1" size="sm" value={data.region} />
                                     </Tooltip>
                                 ))}
                                 </Box>

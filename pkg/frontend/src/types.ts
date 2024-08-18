@@ -42,11 +42,24 @@ export type TypeReference = {
 
 export type K8sReference = Reference & TypeReference
 
+
 export type K8sResource = {
     kind: string
     apiVersion: string
     metadata: Metadata,
     status?: Status
+}
+
+export type SkyClusrerResource = K8sResource & {
+    spec?: {
+        vservicecosts?: {
+            providerReference: {
+                name: string
+                region: string
+                type: string
+            }
+        }[]
+    }
 }
 
 export type CM = K8sResource & {

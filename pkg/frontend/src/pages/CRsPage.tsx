@@ -1,7 +1,7 @@
 import { Info as InfoIcon, HelpOutline as HelpOutlineIcon, DeleteForever as DeleteForeverIcon} from '@mui/icons-material';
-import {Alert, Box, Grid, Chip, Paper, Typography} from "@mui/material";
+import {Tooltip, Stack, Alert, Box, Grid, Chip as MuChip, Paper, Typography} from "@mui/material";
 import {useNavigate, useParams} from "react-router-dom";
-import {K8sResource, CRD, ItemList} from "../types.ts";
+import {SkyClusrerResource, CRD, ItemList} from "../types.ts";
 import {useEffect, useState} from "react";
 import apiClient from "../api.ts";
 import ConditionChips from "../components/ConditionChips.tsx";
@@ -9,16 +9,17 @@ import HeaderBar from "../components/HeaderBar.tsx";
 import PageBody from "../components/PageBody.tsx";
 import InfoTabs, {ItemContext} from "../components/InfoTabs.tsx";
 import InfoDrawer from "../components/InfoDrawer.tsx";
+import { Chip } from "@material-tailwind/react";
 
 const CRDPage = () => {
     const {group: crdGroup, version: crdVersion, name: crdName, focusedName: focusedName} = useParams();
     const [crd, setCRD] = useState<CRD | null>(null);
-    const [crs, setCRs] = useState<ItemList<K8sResource> | null>(null);
+    const [crs, setCRs] = useState<ItemList<SkyClusrerResource> | null>(null);
     const [error, setError] = useState<object | null>(null);
 
     const navigate = useNavigate();
     const [isDrawerOpen, setDrawerOpen] = useState<boolean>(focusedName != undefined);
-    const [focused, setFocused] = useState<K8sResource>({metadata: {name: ""}, kind: "", apiVersion: ""});
+    const [focused, setFocused] = useState<SkyClusrerResource>({metadata: {name: ""}, kind: "", apiVersion: ""});
 
 
     useEffect(() => {
@@ -54,7 +55,20 @@ const CRDPage = () => {
             {state: focused})
     }
 
-    const onItemClick = (item: K8sResource) => {
+    const getColorFromType = (pType: string) => {
+        switch (pType.toLowerCase()) {
+            case "cloud":
+                return "light-blue"
+            case "near-the-edge":
+                return "lime"
+            case "edge":
+                return "red"
+            default:
+                return "gray"
+        }
+    }
+
+    const onItemClick = (item: SkyClusrerResource) => {
         setFocused(item)
         setDrawerOpen(true)
         navigate(
@@ -85,40 +99,73 @@ const CRDPage = () => {
             <HeaderBar title={crd.spec.names.kind} super="CRD"/>
             <PageBody>
                 <Grid container spacing={2} alignItems="stretch">
-                    <Grid item xs={12} md={6}>
+                    <Grid item xs={12}>
                         <Paper className="p-4">
                             <Typography variant="h6">{crd.spec.names.kind}</Typography>
                             <Typography variant="body1" display="inline">{crd.metadata.name}</Typography>
-                            <Chip sx={{ p: 0, mt: 0.5, ml: 1, '& > *': { ml: '8px !important', mr: '-8px !important' } }}
+                            <MuChip sx={{ p: 0, mt: 0.5, ml: 1, '& > *': { ml: '8px !important', mr: '-8px !important' } }}
                                 icon={<InfoIcon />} size="small" variant="outlined" color="primary"
                                 onClick={() => copyToClipboard("kubectl get " + crd.spec.names.kind + " | less")} />
                             <ConditionChips status={crd.status} />
-                            <Chip variant="outlined" className="mr-1 ml-1"
+                            <MuChip variant="outlined" className="mr-1 ml-1"
                                 label={"Delete All"} color={("error")} 
                                 onClick={() => {
                                     copyToClipboard("kubectl delete " + crd.metadata.name + " " + crNames)
-                                }}></Chip>
+                                }}/>
                         </Paper>
                     </Grid>
-                    <Grid item xs={12} md={6}>
+                    <Grid item xs={12}>
                         <Paper className="p-3">
-                        {crs.items.map((cr) => (
-                        <Box sx={{display: 'flex', flexDirection: 'row', p: 0, m: 0}} key={cr.metadata.name}>
-                            <Typography variant="h6">{cr.metadata.name}</Typography>
-                                <Box sx={{display: 'flex', flexDirection: 'row', p: 0, m: 0}}>
-                                    <Chip sx={{ p: 0, mt: 0.5, ml: 1, '& > *': {ml: '8px !important', mr: '-8px !important',}, }}
-                                        icon={<InfoIcon />} size="small" variant="outlined" color="primary"
-                                        onClick={() => copyToClipboard("kubectl get " + cr.kind + " " + cr.metadata.name)} />
-                                    <Chip sx={{ p: 0, mt: 0.5, ml: 1, '& > *': {ml: '8px !important', mr: '-8px !important',}, }}
-                                        icon={<HelpOutlineIcon />} size="small" variant="outlined" color="secondary"
-                                        onClick={() => onItemClick(cr)}
-                                    />
-                                    <Chip sx={{ p: 0, mt: 0.5, ml: 1, '& > *': {ml: '8px !important', mr: '-8px !important',}, }}
-                                        icon={<DeleteForeverIcon />} size="small" variant="outlined" color="error"
-                                        onClick={() => copyToClipboard("kubectl delete " + cr.kind + " " + cr.metadata.name)} />
+                            <Grid container spacing={2}>
+                            {crs.items.map((cr) => (
+                                <Grid item key={cr.metadata.name}>
+                                <Box className="p-1" sx={{border: '0.5px dashed gray'}} key={cr.metadata.name}>
+                                    {cr.metadata?.annotations?.['skycluster-manager.savitestbed.ca/config-type'] == "provattr-config" && (
+                                        <>
+                                        <Chip variant="ghost" className="m-1" color="light-blue" size="sm" 
+                                        value={cr.metadata?.annotations?.['skycluster-manager.savitestbed.ca/provider-name']} />
+                                        <Stack direction="row" spacing={1}>
+                                        <Chip variant="ghost" className="rounded-full m-1" size="sm" 
+                                        value={cr.metadata?.annotations?.['skycluster-manager.savitestbed.ca/provider-region']} />
+                                        <Chip variant="ghost" className="rounded-full m-1" size="sm" 
+                                        value={cr.metadata?.annotations?.['skycluster-manager.savitestbed.ca/provider-type']} />
+                                        </Stack>
+                                        </>
+                                    )}
+                                    {cr.metadata?.annotations?.['skycluster-manager.savitestbed.ca/config-type'] == "vs-config" && (
+                                        <>
+                                        <Typography variant="h6" display="inline">{cr.metadata.name}</Typography>
+                                        <Grid container>
+                                            <Grid item>
+                                                {cr.spec?.vservicecosts?.map((vsc) => (
+                                                    (
+                                                        <Tooltip title={vsc.providerReference.region}>
+                                                        <Chip variant="ghost" className="m-1" 
+                                                            color={getColorFromType(vsc.providerReference.type)} size="sm" 
+                                                        value={vsc.providerReference.name +" ["+ vsc.providerReference.region+"]"} />
+                                                        </Tooltip>
+                                                    )
+                                                ))}
+                                            </Grid>
+                                        </Grid>
+                                        </>
+                                    )}
+                                    <Box sx={{display: 'flex', flexDirection: 'row', p: 0, m: 0}}>
+                                        <MuChip sx={{ p: 0, mt: 0.5, ml: 1, '& > *': {ml: '8px !important', mr: '-8px !important',}, }}
+                                            icon={<InfoIcon />} size="small" variant="outlined" color="primary"
+                                            onClick={() => copyToClipboard("kubectl get " + cr.kind + " " + cr.metadata.name)} />
+                                        <MuChip sx={{ p: 0, mt: 0.5, ml: 1, '& > *': {ml: '8px !important', mr: '-8px !important',}, }}
+                                            icon={<HelpOutlineIcon />} size="small" variant="outlined" color="secondary"
+                                            onClick={() => onItemClick(cr)}
+                                        />
+                                        <MuChip sx={{ p: 0, mt: 0.5, ml: 1, '& > *': {ml: '8px !important', mr: '-8px !important',}, }}
+                                            icon={<DeleteForeverIcon />} size="small" variant="outlined" color="error"
+                                            onClick={() => copyToClipboard("kubectl delete " + cr.kind + " " + cr.metadata.name)} />
+                                    </Box>
                                 </Box>
-                        </Box>
-                        ))}
+                            </Grid>
+                            ))}
+                            </Grid>
                         </Paper>
                     </Grid>
                 </Grid>
