@@ -60,6 +60,11 @@ export type SkyClusrerResource = K8sResource & {
             }
         }[]
     }
+    status?: {
+        // For ILP Task
+        result?: string
+        solution?: string
+    }
 }
 
 export type CM = K8sResource & {

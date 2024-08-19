@@ -94,6 +94,27 @@ const CRDPage = () => {
         });
     };
 
+    const renderValue = (value: any, level = 0) => {
+        if (typeof value === 'object' && value !== null) {
+          return (
+            <div style={{ marginLeft: `${level * 20}px` }}>
+              {Object.entries(value).map(([key, nestedValue]) => (
+                <>
+                    <Stack direction="row" key={key}>
+                        <>
+                        <strong className="mr-1">{key}:</strong>
+                        {renderValue(nestedValue, level + 1)}
+                        </>
+                    </Stack>
+                </>
+              ))}
+            </div>
+          );
+        } else {
+          return <span>{value.toString()}</span>;
+        }
+    };
+
     return (
         <>
             <HeaderBar title={crd.spec.names.kind} super="CRD"/>
@@ -148,6 +169,20 @@ const CRDPage = () => {
                                                 ))}
                                             </Grid>
                                         </Grid>
+                                        </>
+                                    )}
+                                    {cr.metadata?.annotations?.['skycluster-manager.savitestbed.ca/config-type'] == "ilp-task" && (
+                                        <>
+                                        <Typography variant="h6" display="inline">{cr.metadata.name}</Typography>
+                                        <Box>
+                                        {Object.entries(JSON.parse(cr.status?.solution || '{}')).map(([key, value]) => (
+                                            <Box className="m-2 p-1"  key={key}>
+                                                <strong className="mr-1">{key.toUpperCase()}:</strong>
+                                                {renderValue(value)}
+                                            </Box>
+                                            ))
+                                        }
+                                        </Box>
                                         </>
                                     )}
                                     <Box sx={{display: 'flex', flexDirection: 'row', p: 0, m: 0}}>
