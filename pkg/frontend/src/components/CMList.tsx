@@ -21,7 +21,7 @@ const copyToClipboard = (name: string) => {
     });
 };
 
-function getColorFromLabel(label: string): colors | undefined {
+function getColorFromLabel(label: string | undefined): colors | undefined {
     const colors: colors[] = ["blue-gray", "gray", "brown", "deep-orange", "orange", "amber", "yellow", "lime", "light-green", "green", 
         "teal", "cyan", "light-blue", "blue", "indigo", "deep-purple", "purple", "pink", "red"];
     if (!label || typeof label !== 'string') return undefined;
@@ -291,50 +291,58 @@ export default function CMList({items}: CMListProps) {
                         ))}
                         </Grid>
                         </Card>
+                        <Card variant="outlined" className="my-1 p-1">
+                            <Stack direction="row"> 
+                                <Box className="p-1">
+                                <Typography variant="caption">Color Guide:</Typography>
+                                </Box>
+                                <Box className="p-1">
+                                <Typography className="px-1" variant="caption" sx={{'border-left': 'solid .25rem rgb(3 169 244 / 0.8)' }}>Cloud (&lt;50ms)</Typography>
+                                </Box>
+                                <Box className="p-1">
+                                <Typography className="px-1" variant="caption" sx={{'border-left': 'solid .25rem rgb(65 189 104 / 0.8)' }}>Near The Edge (&lt;10ms)</Typography>
+                                </Box>
+                                <Box className="p-1">
+                                <Typography className="px-1" variant="caption" sx={{'border-left': 'solid .25rem rgb(244 67 54 / 0.8)' }}>Edge (&lt;1ms)</Typography>
+                                </Box>
+                            </Stack>
+                        </Card>
                     </Paper>
                 </Box>
                 <Box>
                     <Paper className="p-2">
                     <Typography variant="h6" className="py-2">Providers Overview</Typography>
-                    <Stack direction="row" spacing={1} className="py-2">
-                        <Box className="p-1">
-                            <Typography variant="caption">Color Guide:</Typography>
-                        </Box>
-                        <Chip variant="ghost" className="m-1" color="light-blue" size="sm" value="Cloud (<50ms)" />
-                        <Chip variant="ghost" className="m-1" color="lime" size="sm" value="Near The Edge (<10ms)" />
-                        <Chip variant="ghost" className="m-1" color="red" size="sm" value="Edge (<1ms)" />
-                    </Stack>
                     <Grid container spacing={0.5} alignItems="stretch">
                     {Object.entries(providers).map(([providerName, pdata]) => (
                         <Grid item xs="auto" key={providerName}>
                         <Card variant="outlined" className="p-0">
                             <Typography className="px-2" variant="h6">{providerName}</Typography>
                             {Object.entries(pdata).find(([_, data]) => data.type == "cloud") &&
-                                <Box className="m-1" sx={{ padding: '0.005rem','background-color': 'rgb(3 169 244 / 0.2)' }}>
+                                <Box className="m-1" sx={{ padding: '0.005rem','border-left': 'solid .25rem rgb(3 169 244 / 0.8)' }}>
                                 {Object.entries(pdata).filter(([_, data]) => data.type == "cloud").map(([_, data]) => (
                                     data.region != "global" &&
                                     <Tooltip title={data.skyClusterRegion} key={data.identifier}>
-                                    <Chip variant="outlined" className="m-1" size="sm" value={data.region} />
+                                    <Chip variant="ghost" color={getColorFromLabel(data.skyClusterRegion)} className="m-1" size="sm" value={data.region} />
                                     </Tooltip>
                                 ))}
                                 </Box>
                             }
                             {Object.entries(pdata).find(([_, data]) => data.type == "near-the-edge") &&
-                                <Box className="m-1" sx={{ padding: '0.005rem', 'background-color': 'rgb(205 220 57 / 0.2)' }}>
+                                <Box className="m-1" sx={{ padding: '0.005rem', 'border-left': 'solid .25rem rgb(65 189 104 / 0.8)' }}>
                                 {Object.entries(pdata).filter(([_, data]) => data.type == "near-the-edge").map(([_, data]) => (
                                     data.region != "global" &&
                                     <Tooltip title={data.skyClusterRegion} key={data.identifier}>
-                                    <Chip variant="outlined" className="m-1" size="sm" value={data.region} />
+                                    <Chip variant="ghost" color={getColorFromLabel(data.skyClusterRegion)} className="m-1" size="sm" value={data.region} />
                                     </Tooltip>
                                 ))}
                                 </Box>
                             }
                             {Object.entries(pdata).find(([_, data]) => data.type == "edge") &&
-                                <Box className="m-1" sx={{ padding: '0.005rem', 'background-color': 'rgb(244 67 54 / 0.2)' }}>
+                                <Box className="m-1" sx={{ padding: '0.005rem', 'border-left': 'solid .25rem rgb(244 67 54 / 0.8)' }}>
                                 {Object.entries(pdata).filter(([_, data]) => data.type == "edge").map(([_, data]) => (
                                     data.region != "global" &&
                                     <Tooltip title={data.skyClusterRegion} key={data.identifier}>
-                                    <Chip variant="outlined" className="m-1" size="sm" value={data.region} />
+                                    <Chip variant="ghost" color={getColorFromLabel(data.skyClusterRegion)} className="m-1" size="sm" value={data.region} />
                                     </Tooltip>
                                 ))}
                                 </Box>
