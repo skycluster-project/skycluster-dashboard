@@ -22,8 +22,8 @@ const copyToClipboard = (name: string) => {
 };
 
 function getColorFromLabel(label: string | undefined): colors | undefined {
-    const colors: colors[] = ["blue-gray", "gray", "brown", "deep-orange", "orange", "amber", "yellow", "lime", "light-green", "green", 
-        "teal", "cyan", "light-blue", "blue", "indigo", "deep-purple", "purple", "pink", "red"];
+    const colors: colors[] = ["purple", "lime", "blue-gray", "gray", "light-blue", "brown", "deep-orange", "orange", "amber", "yellow", "light-green", "green", 
+        "teal", "cyan", "blue", "indigo", "deep-purple", "pink", "red"];
     if (!label || typeof label !== 'string') return undefined;
   
     // Get the first two letters of the label

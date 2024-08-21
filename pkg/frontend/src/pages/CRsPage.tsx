@@ -1,7 +1,7 @@
 import { Info as InfoIcon, HelpOutline as HelpOutlineIcon, DeleteForever as DeleteForeverIcon} from '@mui/icons-material';
 import {Tooltip, Stack, Alert, Box, Grid, Chip as MuChip, Paper, Typography} from "@mui/material";
 import {useNavigate, useParams} from "react-router-dom";
-import {SkyClusrerResource, CRD, ItemList} from "../types.ts";
+import {SkyClusterResource, CRD, ItemList} from "../types.ts";
 import {useEffect, useState} from "react";
 import apiClient from "../api.ts";
 import ConditionChips from "../components/ConditionChips.tsx";
@@ -14,12 +14,12 @@ import { Chip } from "@material-tailwind/react";
 const CRDPage = () => {
     const {group: crdGroup, version: crdVersion, name: crdName, focusedName: focusedName} = useParams();
     const [crd, setCRD] = useState<CRD | null>(null);
-    const [crs, setCRs] = useState<ItemList<SkyClusrerResource> | null>(null);
+    const [crs, setCRs] = useState<ItemList<SkyClusterResource> | null>(null);
     const [error, setError] = useState<object | null>(null);
 
     const navigate = useNavigate();
     const [isDrawerOpen, setDrawerOpen] = useState<boolean>(focusedName != undefined);
-    const [focused, setFocused] = useState<SkyClusrerResource>({metadata: {name: ""}, kind: "", apiVersion: ""});
+    const [focused, setFocused] = useState<SkyClusterResource>({metadata: {name: ""}, kind: "", apiVersion: ""});
 
 
     useEffect(() => {
@@ -68,7 +68,7 @@ const CRDPage = () => {
         }
     }
 
-    const onItemClick = (item: SkyClusrerResource) => {
+    const onItemClick = (item: SkyClusterResource) => {
         setFocused(item)
         setDrawerOpen(true)
         navigate(
@@ -141,6 +141,7 @@ const CRDPage = () => {
                             {crs.items.map((cr) => (
                                 <Grid item key={cr.metadata.name}>
                                 <Box className="p-1" sx={{border: '0.5px dashed gray'}} key={cr.metadata.name}>
+                                    <Typography variant="h6" display="inline">{cr.metadata.name}</Typography>
                                     {cr.metadata?.annotations?.['skycluster-manager.savitestbed.ca/config-type'] == "provattr-config" && (
                                         <>
                                         <Chip variant="ghost" className="m-1" color="light-blue" size="sm" 
@@ -155,7 +156,19 @@ const CRDPage = () => {
                                     )}
                                     {cr.metadata?.annotations?.['skycluster-manager.savitestbed.ca/config-type'] == "vs-config" && (
                                         <>
-                                        <Typography variant="h6" display="inline">{cr.metadata.name}</Typography>
+                                        {cr.spec?.vserviceCompositions && (
+                                            <Box className="m-1 p-1" sx={{'background-color':'#f0f0f0'}}>
+                                            <Typography variant="body2" className="mb-1">Compositions:</Typography>
+                                            <Stack className="ml-2" >
+                                                {cr.spec?.vserviceCompositions?.map((vsc) => (
+                                                    <Stack className="pl-1 mb-2" sx={{'border-left': '2px solid gray', }}>
+                                                    <Typography variant="caption" display="inline">{vsc.apiVersion}</Typography>
+                                                    <Typography variant="caption" display="inline">{vsc.kind}</Typography>
+                                                    </Stack>
+                                                ))}
+                                            </Stack>
+                                            </Box>
+                                        )}
                                         <Grid container>
                                             <Grid item>
                                                 {cr.spec?.vservicecosts?.map((vsc) => (
@@ -163,7 +176,7 @@ const CRDPage = () => {
                                                         <Tooltip title={vsc.providerReference.region}>
                                                         <Chip variant="ghost" className="m-1" 
                                                             color={getColorFromType(vsc.providerReference.type)} size="sm" 
-                                                        value={vsc.providerReference.name +" ["+ vsc.providerReference.region+"]"} />
+                                                        value={vsc.providerReference.name +" ["+ vsc.providerReference.region+"]" + " ("+ vsc.providerReference.type+")"} />
                                                         </Tooltip>
                                                     )
                                                 ))}
@@ -173,7 +186,6 @@ const CRDPage = () => {
                                     )}
                                     {cr.metadata?.annotations?.['skycluster-manager.savitestbed.ca/config-type'] == "ilp-task" && (
                                         <>
-                                        <Typography variant="h6" display="inline">{cr.metadata.name}</Typography>
                                         <Box>
                                         {Object.entries(JSON.parse(cr.status?.solution || '{}')).map(([key, value]) => (
                                             <Box className="m-2 p-1"  key={key}>
