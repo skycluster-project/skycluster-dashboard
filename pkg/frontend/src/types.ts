@@ -50,7 +50,7 @@ export type K8sResource = {
     status?: Status
 }
 
-export type SkyClusrerResource = K8sResource & {
+export type SkyClusterResource = K8sResource & {
     spec?: {
         vservicecosts?: {
             providerReference: {
@@ -58,6 +58,10 @@ export type SkyClusrerResource = K8sResource & {
                 region: string
                 type: string
             }
+        }[]
+        vserviceCompositions?: {
+            apiVersion: string
+            kind: string
         }[]
     }
     status?: {
