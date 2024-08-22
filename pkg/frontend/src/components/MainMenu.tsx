@@ -30,6 +30,22 @@ export default function MainMenu() {
 
     return (<>
         <List>
+            <ListItem key="CRDs" disablePadding>
+                <ListItemButton component={RouterLink} to="/crds" sx={styleHighLight("/crds")}>
+                    <ListItemIcon>
+                        <XRDsIcon/>
+                    </ListItemIcon>
+                    <ListItemText primary="Custom Resource Definitions"/>
+                </ListItemButton>
+            </ListItem>
+            <ListItem key="CMs" disablePadding>
+                <ListItemButton component={RouterLink} to="/cms" sx={styleHighLight("/cms")}>
+                    <ListItemIcon>
+                        <ProvidersIcon/>
+                    </ListItemIcon>
+                    <ListItemText primary="Config Maps"/>
+                </ListItemButton>
+            </ListItem>
             <ListItem key="Composite Resources" disablePadding>
                 <ListItemButton component={RouterLink} to="/composite" sx={styleHighLight("/composite")}>
                     <ListItemIcon>
@@ -44,14 +60,6 @@ export default function MainMenu() {
                         <ManagedIcon/>
                     </ListItemIcon>
                     <ListItemText primary="Managed Resources"/>
-                </ListItemButton>
-            </ListItem>
-            <ListItem key="Providers" disablePadding>
-                <ListItemButton component={RouterLink} to="/providers" sx={styleHighLight("/providers")}>
-                    <ListItemIcon>
-                        <ProvidersIcon/>
-                    </ListItemIcon>
-                    <ListItemText primary="Providers"/>
                 </ListItemButton>
             </ListItem>
         </List>
@@ -71,22 +79,6 @@ export default function MainMenu() {
                         <XRDsIcon/>
                     </ListItemIcon>
                     <ListItemText primary="XRDs"/>
-                </ListItemButton>
-            </ListItem>
-            <ListItem key="CRDs" disablePadding>
-                <ListItemButton component={RouterLink} to="/crds" sx={styleHighLight("/crds")}>
-                    <ListItemIcon>
-                        <XRDsIcon/>
-                    </ListItemIcon>
-                    <ListItemText primary="CRDs"/>
-                </ListItemButton>
-            </ListItem>
-            <ListItem key="CMs" disablePadding>
-                <ListItemButton component={RouterLink} to="/cms" sx={styleHighLight("/cms")}>
-                    <ListItemIcon>
-                        <XRDsIcon/>
-                    </ListItemIcon>
-                    <ListItemText primary="CMs"/>
                 </ListItemButton>
             </ListItem>
         </List>

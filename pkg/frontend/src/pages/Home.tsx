@@ -20,12 +20,17 @@ function Home() {
                     <p className="font-extrabold text-3xl font-serif">SkyCluster</p>
                     <Typography variant="subtitle2">Any Service, Anywhere.</Typography>
                 </Box>
-                <Grid container spacing={5} alignItems="stretch">
-                    {/* <Grid item md={4}>
-                        <HomePageBlock title="Claims" getter={apiClient.getClaimList} onClick={() => {
-                            navigate("claims")
-                        }} icon={<ClaimsIcon fontSize={"large"}/>}/>
-                    </Grid> */}
+                <Grid container spacing={3}>
+                    <Grid item md={4}>
+                        <HomePageBlock title="SkyCluster ConfigMaps" getter={apiClient.getCMsList} onClick={() => {
+                            navigate("cms")
+                        }} icon={<XRDsIcon fontSize={"large"}/>}/>
+                    </Grid>
+                    <Grid item md={4}>
+                        <HomePageBlock title="SkyCluster CRDs" getter={apiClient.getCRDsList} onClick={() => {
+                            navigate("crds")
+                        }} icon={<XRDsIcon fontSize={"large"}/>}/>
+                    </Grid>
                     <Grid item md={4}>
                         <HomePageBlock title="Composite Resources" getter={apiClient.getCompositeResourcesList} onClick={() => {
                             navigate("composite")
@@ -38,11 +43,6 @@ function Home() {
                                        }} icon={<ManagedIcon fontSize={"large"}/>}/>
                     </Grid>
                     <Grid item md={4}>
-                        <HomePageBlock title="Providers" getter={apiClient.getProviderList} onClick={() => {
-                            navigate("providers")
-                        }} icon={<ProvidersIcon fontSize={"large"}/>}/>
-                    </Grid>
-                    <Grid item md={4}>
                         <HomePageBlock title="Compositions" getter={apiClient.getCompositionsList}
                                        onClick={() => {
                                            navigate("compositions")
@@ -53,17 +53,17 @@ function Home() {
                             navigate("xrds")
                         }} icon={<XRDsIcon fontSize={"large"}/>}/>
                     </Grid>
-                    <Grid item md={4}>
-                        <HomePageBlock title="SkyCluster CRDs" getter={apiClient.getCRDsList} onClick={() => {
-                            navigate("crds")
-                        }} icon={<XRDsIcon fontSize={"large"}/>}/>
-                    </Grid>
-                    <Grid item md={4}>
-                        <HomePageBlock title="SkyCluster ConfigMaps" getter={apiClient.getCMsList} onClick={() => {
-                            navigate("cms")
-                        }} icon={<XRDsIcon fontSize={"large"}/>}/>
-                    </Grid>
                 </Grid>
+                {/* <Grid item md={4}>
+                    <HomePageBlock title="Claims" getter={apiClient.getClaimList} onClick={() => {
+                        navigate("claims")
+                    }} icon={<ClaimsIcon fontSize={"large"}/>}/>
+                </Grid> */}
+                {/* <Grid item md={4}>
+                    <HomePageBlock title="Providers" getter={apiClient.getProviderList} onClick={() => {
+                        navigate("providers")
+                    }} icon={<ProvidersIcon fontSize={"large"}/>}/>
+                </Grid> */}
             </PageBody>
         </>
     );
