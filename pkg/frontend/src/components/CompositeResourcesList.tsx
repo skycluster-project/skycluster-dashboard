@@ -17,6 +17,12 @@ type ItemProps = {
     onItemClick: { (item: CompositeResource): void }
 };
 
+const copyToClipboard = (name: string) => {
+    navigator.clipboard.writeText(name).then(() => {}, (err) => {
+        console.error('Could not copy text: ', err);
+    });
+};
+
 function ListItem({item: initialItem, onItemClick}: ItemProps) {
     const [item, setItem] = useState<CompositeResource>(initialItem);
     const copyToClipboard = (name: string) => {
@@ -230,6 +236,8 @@ export default function CompositeResourcesList({items}: ItemListProps) {
                         </Stack>
                     </AccordionSummary>
                     <AccordionDetails>
+                        <Chip icon={<DeleteForeverIcon />} size="small" variant="outlined" color="error" label="Delete All"
+                                    onClick={() => copyToClipboard("kubectl delete " + items[0].kind + " " + items.map(item => item.metadata.name).join(" "))} />
                         <List>
                             {items.map((item: CompositeResource) => (
                                 <ListItem item={item} key={item.metadata.name} onItemClick={onItemClick}/>
