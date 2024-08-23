@@ -100,7 +100,8 @@ const CRDPage = () => {
             <div style={{ marginLeft: `${level * 20}px` }}>
               {Object.entries(value).map(([key, nestedValue]) => (
                 <>
-                    <Stack direction="row" key={key}>
+                    <Stack direction="row" className={level === 0 ? "mb-1 p-2" : ""} 
+                        sx={{ 'border-bottom' : level == 0 ? '0.5px dashed gray' : "" }} key={key}>
                         <>
                         <strong className="mr-1">{key}:</strong>
                         {renderValue(nestedValue, level + 1)}
