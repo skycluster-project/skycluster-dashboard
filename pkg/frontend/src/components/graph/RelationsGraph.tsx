@@ -7,14 +7,13 @@ import ReactFlow, {
     Node,
     Position,
     useEdgesState,
-    useNodesState
+    useNodesState,
+    BackgroundVariant,
 } from 'reactflow';
 import dagre from 'dagre';
 import 'reactflow/dist/style.css';
 import {BaseSyntheticEvent, useCallback, useEffect} from "react";
 import {ClaimNode, CompositionNode, MRNode, ProviderConfigNode, XRNode} from "./CustomNodes.tsx"
-import {logger} from "../../logger.ts";
-
 
 const nodeWidth = 300;
 const nodeHeight = 50;
@@ -24,7 +23,7 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => 
     dagreGraph.setDefaultEdgeLabel(() => ({}));
 
     const isHorizontal = direction === 'LR' || direction === "RL";
-    dagreGraph.setGraph({rankdir: direction});
+    dagreGraph.setGraph({rankdir: direction, ranksep: 100});
 
     nodes.forEach((node) => {
         dagreGraph.setNode(node.id, {width: nodeWidth, height: nodeHeight});
@@ -38,8 +37,8 @@ const getLayoutedElements = (nodes: Node[], edges: Edge[], direction = 'TB') => 
 
     nodes.forEach((node) => {
         const nodeWithPosition = dagreGraph.node(node.id);
-        node.targetPosition = isHorizontal ? Position.Right : Position.Top;
-        node.sourcePosition = isHorizontal ? Position.Left : Position.Bottom;
+        node.targetPosition = isHorizontal ? Position.Left : Position.Top;
+        node.sourcePosition = isHorizontal ? Position.Right : Position.Bottom;
 
         // We are shifting the dagre node position (anchor=center center) to the top left
         // so it matches the React Flow node anchor point (top left).
@@ -69,13 +68,12 @@ const nodeTypes = {
 };
 
 const RelationsGraph = ({nodes: initialNodes, edges: initialEdges}: GraphProps) => {
-    logger.log("Render initial", initialNodes)
 
     // FIXME: something wrong is happening here or in the calling code, not always layouted properly
     const {nodes: layoutedNodes, edges: layoutedEdges} = getLayoutedElements(
         initialNodes,
         initialEdges,
-        "RL"
+        "LR"
     );
 
     const [nodes, setNodes, onNodesChange] = useNodesState(layoutedNodes);
@@ -97,7 +95,6 @@ const RelationsGraph = ({nodes: initialNodes, edges: initialEdges}: GraphProps) 
         }
     }
 
-    logger.log("Render")
 
     return (
         <ReactFlow
@@ -112,7 +109,7 @@ const RelationsGraph = ({nodes: initialNodes, edges: initialEdges}: GraphProps) 
             nodesConnectable={false}
             fitView
         >
-            <Background color="white"/>
+            <Background variant={BackgroundVariant.Dots} gap={15} size={1} />
             <Controls showInteractive={false} showZoom={false} position={"top-right"}/>
         </ReactFlow>
     );

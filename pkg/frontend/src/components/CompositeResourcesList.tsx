@@ -87,11 +87,13 @@ type ItemListProps = {
 export default function CompositeResourcesList({items}: ItemListProps) {
     const {name: focusedName} = useParams();
     const [isDrawerOpen, setDrawerOpen] = useState<boolean>(focusedName != undefined);
+    const nullFocused = {metadata: {name: ""}, kind: "", apiVersion: ""};
     const [focused, setFocused] = useState<K8sResource>({metadata: {name: ""}, kind: "", apiVersion: ""});
     const navigate = useNavigate();
 
     const onClose = () => {
         setDrawerOpen(false)
+        setFocused(nullFocused)
         navigate("/composite", {state: focused})
     }
 
@@ -139,7 +141,7 @@ export default function CompositeResourcesList({items}: ItemListProps) {
         )
     }
 
-    // Define groupedItems
+    // Define Grouped Items
     const groupedItems: { [itemIndex: string]: CompositeResource[] } = {};
     items.items.forEach((item) => {
         const itemIndex = item.apiVersion.split('.')[0] + "." + item.apiVersion.split('.')[1] + "." + item.kind
@@ -187,7 +189,7 @@ export default function CompositeResourcesList({items}: ItemListProps) {
                 <span className="mx-1"><Button variant="outlined" onClick={collapseAll}>Collapse All</Button></span>
             </div>
             {Object.entries(groupedItems).map(([itemIndex, items]) => (
-                <Grid item sx={{mb: 1}} xs={12} md={12} key={itemIndex} m={1}>
+                <Stack key={itemIndex} className="m-1">
                     <Accordion key={itemIndex} expanded={expandedItems[itemIndex] || false} onChange={() => handleAccordionChange(itemIndex)}>
                     <AccordionSummary expandIcon={<ExpandMoreIcon/>}>
                         <Stack sx={{mt: 0.5}} direction="row" spacing={1}>
@@ -245,7 +247,7 @@ export default function CompositeResourcesList({items}: ItemListProps) {
                         </List>
                     </AccordionDetails>
                     </Accordion>
-                </Grid>
+                </Stack>
             ))}
             <InfoDrawer
                 key={focused.metadata.name}

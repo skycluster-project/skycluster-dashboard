@@ -25,7 +25,6 @@ export class GraphData {
     public addNode(ntype: NodeTypes, res: K8sResource, isMain: boolean, navigate: NavigateFunction): Node {
         const status = this.getStatus(res)
         const onClick = this.genOnClick(ntype, res, isMain, navigate)
-        logger.log("OnClick", onClick == NOOP)
         const compositionName = res?.metadata.annotations ? res.metadata.annotations["crossplane.io/composition-resource-name"] : null
         const node = {
             id: (++this.id).toString(),
@@ -76,13 +75,12 @@ export class GraphData {
                 break;
         }
 
-        edge.markerStart = marker
+        // edge.markerStart = marker
 
         this.edges.push(edge)
     }
 
     private getStatus(res: K8sResource): [NodeStatus, string] {
-        logger.log("get status from", res)
         if (!res) {
             return [NodeStatus.NotFound, "Not Specified"]
         }
@@ -95,7 +93,6 @@ export class GraphData {
             }
         });
 
-        logger.log("status " + res.metadata.name, problems)
 
         if (problems["Found"]) {
             return [NodeStatus.NotFound, problems["Found"]]

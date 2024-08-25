@@ -35,6 +35,7 @@ export default function ClaimPage() {
         return (<LinearProgress/>)
     }
 
+    console.log(claim)
     const data = graphDataFromClaim(claim, navigate);
 
     const onClose = () => {
@@ -89,7 +90,7 @@ export default function ClaimPage() {
                         </Paper>
                     </Grid>
                     <Grid item xs={12} md={12}>
-                        <Paper className="p-4 flex flex-col" sx={{height: '20rem'}}>
+                        <Paper className="p-4 flex flex-col" sx={{height: '40rem'}}>
                             <Typography variant="h6">Relations</Typography>
                             <RelationsGraph nodes={data.nodes} edges={data.edges}></RelationsGraph>
                         </Paper>
@@ -116,16 +117,16 @@ function graphDataFromClaim(claim: ClaimExtended, navigate: NavigateFunction): G
     const claimId = graphData.addNode(NodeTypes.Claim, claim, true, navigate)
 
     const compId = graphData.addNode(NodeTypes.Composition, claim.composition, false, navigate);
-    graphData.addEdge(compId, claimId)
+    graphData.addEdge(claimId, compId)
 
     const xrId = graphData.addNode(NodeTypes.CompositeResource, claim.compositeResource, false, navigate);
-    graphData.addEdge(xrId, claimId)
+    graphData.addEdge(claimId, xrId)
 
     // TODO: check that composite resource points to the same composition and draw line between them
 
     claim.managedResources?.map(res => {
         const resId = graphData.addNode(NodeTypes.ManagedResource, res, false, navigate);
-        graphData.addEdge(resId, xrId)
+        graphData.addEdge(xrId, resId)
     })
 
     return graphData;
