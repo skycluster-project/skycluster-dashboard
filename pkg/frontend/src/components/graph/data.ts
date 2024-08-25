@@ -50,6 +50,7 @@ export class GraphData {
             id: (++this.id).toString(),
             source: src.id,
             target: tgt.id,
+            animated: true,
         };
 
         const marker: EdgeMarkerType = {type: MarkerType.ArrowClosed, width: 20, height: 20}
@@ -75,7 +76,7 @@ export class GraphData {
                 break;
         }
 
-        // edge.markerStart = marker
+        edge.markerEnd = marker
 
         this.edges.push(edge)
     }

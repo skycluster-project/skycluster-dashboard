@@ -711,6 +711,9 @@ func (c *Controller) fillManagedResources(ec echo.Context, xr *uxres.Unstructure
 			log.Debugf("Did not find dynamic resource %v", mrRef)
 		}
 
+		// recursively fill the MRs
+		c.fillManagedResources(ec, &mr.Unstructured)
+
 		if mr.GetName() != "" { // skip those not found
 			nameMatched, claimNameMatched := c.matchXR(xrds, &mrRef)
 			if nameMatched {

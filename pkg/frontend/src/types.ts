@@ -121,7 +121,7 @@ export type Claim = K8sResource & {
 
 export type ClaimExtended = Claim & {
     managedResources: ManagedResource[]
-    compositeResource: CompositeResource
+    compositeResource: CompositeResourceExtended
     composition: Composition
 }
 
@@ -133,6 +133,7 @@ export type ManagedResource = K8sResource & {
 }
 
 export type ManagedResourceExtended = ManagedResource & {
+    managedResources: ManagedResourceExtended[]
     composite?: CompositeResource
     provConfig?: ProviderConfig
 }
@@ -147,7 +148,7 @@ export type CompositeResource = K8sResource & {
 }
 
 export type CompositeResourceExtended = CompositeResource & {
-    managedResources: ManagedResource[]
+    managedResources: ManagedResourceExtended[]
     managedResourcesXRs: K8sReference[]
     managedResourcesClaims: K8sReference[]
     composition: Composition
