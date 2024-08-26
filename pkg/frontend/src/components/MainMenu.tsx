@@ -11,6 +11,7 @@ import ProvidersIcon from "@mui/icons-material/GridViewTwoTone";
 import Divider from "@mui/material/Divider";
 import CompositionsIcon from "@mui/icons-material/AccountTreeTwoTone";
 import XRDsIcon from "@mui/icons-material/SchemaTwoTone";
+import { Typography } from "@mui/material";
 
 export default function MainMenu() {
     const location = useLocation();
@@ -35,15 +36,7 @@ export default function MainMenu() {
                     <ListItemIcon>
                         <XRDsIcon/>
                     </ListItemIcon>
-                    <ListItemText primary="Claims"/>
-                </ListItemButton>
-            </ListItem>
-            <ListItem key="CRDs" disablePadding>
-                <ListItemButton component={RouterLink} to="/crds" sx={styleHighLight("/crds")}>
-                    <ListItemIcon>
-                        <XRDsIcon/>
-                    </ListItemIcon>
-                    <ListItemText primary="Custom Resource Definitions"/>
+                    <ListItemText primary="SkyCluster Services"/>
                 </ListItemButton>
             </ListItem>
             <ListItem key="CMs" disablePadding>
@@ -51,7 +44,15 @@ export default function MainMenu() {
                     <ListItemIcon>
                         <ProvidersIcon/>
                     </ListItemIcon>
-                    <ListItemText primary="Config Maps"/>
+                    <ListItemText primary="SkyCluster Configs"/>
+                </ListItemButton>
+            </ListItem>
+            <ListItem key="CRDs" disablePadding>
+                <ListItemButton component={RouterLink} to="/crds" sx={styleHighLight("/crds")}>
+                    <ListItemIcon>
+                        <XRDsIcon/>
+                    </ListItemIcon>
+                    <ListItemText primary="SkyCluster CRD"/>
                 </ListItemButton>
             </ListItem>
             <ListItem key="Composite Resources" disablePadding>
