@@ -48,8 +48,12 @@ const HomePageClaimGraph = ({title, getter}: Props) => {
         return graphDataFromClaim(c, () => {})}
     ) : [];
     
-    if (items == null || dataGraphList == null || dataGraphList.length == 0) {
+    if (items == null || dataGraphList == null) {
         return <Paper className="p-5"><Typography variant="h5" className="pb-5">{title}</Typography><LinearProgress/></Paper>
+    }
+    
+    if (dataGraphList.length == 0) {
+        return <Paper className="p-5"><Typography variant="h5" className="pb-5">{title}</Typography>No services yet! Create a new Service or submit your application.</Paper>
     }
 
     return (
