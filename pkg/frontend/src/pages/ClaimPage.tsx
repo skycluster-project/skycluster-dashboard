@@ -1,8 +1,7 @@
 import {Alert, Box, Grid, IconButton, LinearProgress, Paper, Typography} from "@mui/material";
-import {NavigateFunction, useNavigate, useParams} from "react-router-dom";
-import {Claim, ClaimExtended, ManagedResourceExtended} from "../types.ts";
+import {useNavigate, useParams} from "react-router-dom";
+import {Claim, ClaimExtended} from "../types.ts";
 import {useEffect, useState} from "react";
-import {Node} from "reactflow";
 import apiClient from "../api.ts";
 import ConditionList from "../components/ConditionList.tsx";
 import Events from "../components/Events.tsx";
@@ -13,7 +12,7 @@ import InfoTabs, {ItemContext} from "../components/InfoTabs.tsx";
 import ConditionChips from "../components/ConditionChips.tsx";
 import InfoDrawer from "../components/InfoDrawer.tsx";
 import {DataObject as YAMLIcon} from '@mui/icons-material';
-import {GraphData, NodeTypes} from "../components/graph/data.ts";
+import {graphDataFromClaim} from "../components/graph/graphData.ts";
 
 export default function ClaimPage() {
     const {group: group, version: version, kind: kind, namespace: namespace, name: name} = useParams();
@@ -36,7 +35,7 @@ export default function ClaimPage() {
         return (<LinearProgress/>)
     }
 
-    console.log(claim)
+    // console.log(claim)
     const data = graphDataFromClaim(claim, navigate);
 
     const onClose = () => {
@@ -109,50 +108,4 @@ export default function ClaimPage() {
             </InfoDrawer>
         </>
     );
-}
-
-
-function graphDataFromClaim(claim: ClaimExtended, navigate: NavigateFunction): GraphData {
-    const graphData = new GraphData()
-
-    const claimId = graphData.addNode(NodeTypes.Claim, claim, true, navigate)
-
-    // We don't need the compositions for now
-    // const compId = graphData.addNode(NodeTypes.Composition, claim.composition, false, navigate);
-    // graphData.addEdge(claimId, compId)
-
-    const xrId = graphData.addNode(NodeTypes.CompositeResource, claim.compositeResource, false, navigate);
-    graphData.addEdge(claimId, xrId)
-
-    // TODO: check that composite resource points to the same composition and draw line between them
-
-    // Each composite object (xr) has a list of resources (managed and composite resources)
-    // stored within managedResources fields
-    claim.compositeResource.managedResources?.map(res => {
-        // Draw recursively
-        // To identidy the type we need to check external-name annotation
-        // if it's present, it's a managed resource
-        let resType: NodeTypes;
-        if (res.metadata.annotations && res.metadata.annotations['crossplane.io/external-name']) {
-            resType = NodeTypes.ManagedResource;
-        } else {
-            resType = NodeTypes.CompositeResource;
-        }
-        const resId = graphData.addNode(resType, res, false, navigate);
-        graphData.addEdge(xrId, resId)
-
-        graphDataFromComposition(graphData, res, resId, navigate)
-    })
-
-    return graphData;
-}
-
-
-function graphDataFromComposition(graphData: GraphData, mngRes: ManagedResourceExtended, mngResId: Node, navigate: NavigateFunction) {
-    mngRes.managedResources?.map((res: ManagedResourceExtended) => {
-        const resId = graphData.addNode(NodeTypes.ManagedResource, res, false, navigate);
-        graphData.addEdge(mngResId, resId)
-        // Recursively draw the graph
-        graphDataFromComposition(graphData, res, resId, navigate)
-    })
 }
