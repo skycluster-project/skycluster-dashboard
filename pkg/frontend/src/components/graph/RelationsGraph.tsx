@@ -14,7 +14,6 @@ import dagre from 'dagre';
 import 'reactflow/dist/style.css';
 import {BaseSyntheticEvent, useCallback, useEffect} from "react";
 import {ClaimNode, CompositionNode, MRNode, ProviderConfigNode, XRNode} from "./CustomNodes.tsx"
-// import { Height } from '@mui/icons-material';
 
 // const nodeWidth = 250;
 // const nodeHeight = 50;
@@ -111,7 +110,7 @@ const RelationsGraph = ({nodes: initialNodes, edges: initialEdges}: GraphProps) 
             fitView
         >
             <Background variant={BackgroundVariant.Dots} gap={15} size={1} />
-            <Controls showInteractive={false} showZoom={false} position={"top-right"}/>
+            <Controls showInteractive={true} showZoom={true} showFitView={true} position={"top-right"}/>
         </ReactFlow>
     );
 };

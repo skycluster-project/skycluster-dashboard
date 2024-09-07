@@ -90,7 +90,7 @@ export default function ClaimPage() {
                         </Paper>
                     </Grid>
                     <Grid item xs={12} md={12}>
-                        <Paper className="p-4 flex flex-col" sx={{height: '40rem'}}>
+                        <Paper className="p-4 flex flex-col" sx={{height: '60rem'}}>
                             <Typography variant="h6">Relations</Typography>
                             <RelationsGraph nodes={data.nodes} edges={data.edges}></RelationsGraph>
                         </Paper>

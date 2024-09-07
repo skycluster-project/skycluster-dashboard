@@ -22,25 +22,30 @@ function Home() {
                     <Typography variant="subtitle2">Any Service, Anywhere.</Typography>
                 </Box>
                 <Grid container spacing={2}>
-                    <Grid item md={12}>
-                        <HomePageClaimGraph title="SkyCluster Services" getter={apiClient.getClaimList}/>
+                    <Grid item sm={12} md={6} lg={3} >
+                        <HomePageBlock title="SkyCluster Services" getter={apiClient.getClaimList} onClick={() => {
+                            navigate("claims")
+                        }} icon={<ClaimsIcon fontSize={"large"}/>}/>
                     </Grid>
-                    <Grid item md={3}>
+                    {/* <Grid item md={12}>
+                        <HomePageClaimGraph title="SkyCluster Services" getter={apiClient.getClaimList}/>
+                    </Grid> */}
+                    <Grid item sm={12} md={6} lg={3}>
                         <HomePageBlock title="SkyCluster Configs" getter={apiClient.getCMsList} onClick={() => {
                             navigate("cms")
                         }} icon={<XRDsIcon fontSize={"large"}/>}/>
                     </Grid>
-                    <Grid item md={3}>
+                    <Grid item sm={12} md={6} lg={3}>
                         <HomePageBlock title="SkyCluster Custom Resource Definitions" getter={apiClient.getCRDsList} onClick={() => {
                             navigate("crds")
                         }} icon={<XRDsIcon fontSize={"large"}/>}/>
                     </Grid>
-                    <Grid item md={3}>
+                    <Grid item sm={12} md={6} lg={3}>
                         <HomePageBlock title="Composite Resources" getter={apiClient.getCompositeResourcesList} onClick={() => {
                             navigate("composite")
                         }} icon={<CompositeIcon fontSize={"large"}/>}/>
                     </Grid>
-                    <Grid item md={3}>
+                    <Grid item sm={12} md={6} lg={3}>
                         <HomePageBlock title="Managed Resources" getter={apiClient.getManagedResourcesList}
                             onClick={() => {
                                 navigate("managed")

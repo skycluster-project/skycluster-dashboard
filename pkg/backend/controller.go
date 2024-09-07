@@ -72,7 +72,6 @@ type ManagedUnstructured struct { // no dedicated type for it in base CP, just r
 
 var (
 	// TODO: this is manually hardcoded, should be generated from the CRD
-	ProviderConfigRemoteExecAPIVersion = "remoteexec.crossplane.io"
 	SkyClusterAPI                      = "skycluster-manager.savitestbed.ca"
 	SkyClusterCoreGroup                = "core." + SkyClusterAPI
 	SkyClusterVersion                  = "v1alpha1"
