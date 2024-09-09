@@ -10,6 +10,7 @@ import {CssBaseline, Link, ThemeProvider} from "@mui/material";
 import ProviderPage from "./pages/ProviderPage.tsx";
 import ClaimsPage from "./pages/ClaimsPage.tsx";
 import ClaimPage from "./pages/ClaimPage.tsx";
+import AppPage from "./pages/AppPage.tsx";
 import ManagedResourcesPage from "./pages/ManagedResourcesPage.tsx";
 import CompositeResourcesPage from "./pages/CompositeResourcesPage.tsx";
 import CompositionsPage from "./pages/CompositionsPage.tsx";
@@ -84,6 +85,8 @@ export default function App() {
                             <Route path="/providers/:provider" element={<ProviderPage/>}/>
                             <Route path="/claims" element={<ClaimsPage/>}/>
                             <Route path="/claims/:group/:version/:kind/:namespace/:name" element={<ClaimPage/>}/>
+                            <Route path="/remote/:group/:version/:kind/:namespace/:name" element={<AppPage/>}/>
+                            <Route path="/remote/:group/:version/:kind/:namespace/:name/:deployName" element={<AppPage/>}/>
                             <Route path="/managed" element={managed}/>
                             <Route path="/managed/:group/:version/:kind/:name" element={managed}/>
                             <Route path="/composite" element={composite}/>

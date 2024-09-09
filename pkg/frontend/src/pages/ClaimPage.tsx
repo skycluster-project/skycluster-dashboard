@@ -12,7 +12,7 @@ import PageBody from "../components/PageBody.tsx";
 import InfoTabs, {ItemContext} from "../components/InfoTabs.tsx";
 import ConditionChips from "../components/ConditionChips.tsx";
 import InfoDrawer from "../components/InfoDrawer.tsx";
-import {DataObject as YAMLIcon} from '@mui/icons-material';
+import {DataObject as YAMLIcon, Apps as AppsIcon} from '@mui/icons-material';
 import {graphDataFromClaim} from "../components/graph/graphData.ts";
 
 
@@ -80,9 +80,18 @@ export default function ClaimPage() {
                         <Paper className="p-4">
                             <Box className="flex justify-between">
                                 <Typography variant="h6">Configuration</Typography>
+                                <Box>
                                 <IconButton onClick={onYaml} title="Show YAML">
                                     <YAMLIcon/>
                                 </IconButton>
+                                { claim.kind === "SkyK8SCluster" && (
+                                    <IconButton onClick={()=>{
+                                        const addr = group + "/" + version + "/" + kind + "/" + namespace + "/" + name;
+                                        window.open("/remote/" + addr, '_blank')}} title="Show App">
+                                        <AppsIcon/>
+                                    </IconButton>
+                                )}
+                                </Box>
                             </Box>
                             <Typography variant="body1">
                                 API Version: {claim.apiVersion}

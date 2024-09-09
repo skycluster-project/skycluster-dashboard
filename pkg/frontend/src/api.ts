@@ -77,6 +77,18 @@ class APIClient {
         const data: ItemList<K8sEvent> = await response.json();
         return data;
     };
+    
+    getRemoteResource = async (group?: string, version?: string, kind?: string, namespace?: string, name?: string, deployName?: string) => {
+        const response = await this.innterFetch(`/api/remote/`+ group + "/" + version + "/" + kind + "/" + namespace + "/" + name + "/" + deployName);
+        const data: K8sResource = await response.json();
+        return data;
+    };
+
+    getRemoteResources = async (group?: string, version?: string, kind?: string, namespace?: string, name?: string) => {
+        const response = await this.innterFetch(`/api/remote/`+ group + "/" + version + "/" + kind + "/" + namespace + "/" + name);
+        const data: ItemList<K8sResource> = await response.json();
+        return data;
+    };
 
     getProviderConfigs = async (name: string) => {
         const response = await this.innterFetch(`/api/providers/${name}/configs`);

@@ -1,6 +1,6 @@
 import {Node} from "reactflow";
-import {GraphData, NodeTypes} from "./data.ts";
-import {ClaimExtended, ManagedResourceExtended} from "../../types.ts";
+import {GraphData, GraphDataApplication, NodeTypes} from "./data.ts";
+import {ClaimExtended, K8sResource, ManagedResourceExtended, ItemList} from "../../types.ts";
 import {NavigateFunction} from "react-router-dom";
 
 export function graphDataFromClaim(claim: ClaimExtended, navigate: NavigateFunction): GraphData {
@@ -45,4 +45,17 @@ export function graphDataFromComposition(graphData: GraphData, mngRes: ManagedRe
       // Recursively draw the graph
       graphDataFromComposition(graphData, res, resId, navigate)
   })
+}
+
+
+
+export function graphDataFromDeployments(addrBase: String, deploys: ItemList<K8sResource>, navigate: NavigateFunction): GraphDataApplication {
+  const graphData = new GraphDataApplication()
+
+  deploys.items.map((deploy: K8sResource) => {
+      graphData.addNode(deploy, addrBase, navigate)
+      // TODO: Add edge between deployments
+  })
+
+  return graphData;
 }

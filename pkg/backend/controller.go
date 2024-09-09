@@ -213,7 +213,7 @@ func (c *Controller) GetCustomResources(ec echo.Context) error {
 }
 
 // Author: Ehsan Etesami
-func (c *Controller) GetRemoteResource(ec echo.Context) error {
+func (c *Controller) GetRemoteResources(ec echo.Context) error {
 
 	gvk := schema.GroupVersionKind{
 		Group:   ec.Param("group"),
@@ -249,6 +249,52 @@ func (c *Controller) GetRemoteResource(ec echo.Context) error {
 					return err
 				}
 				return ec.JSONPretty(http.StatusOK, deployments, "  ")
+			}
+			return errors.New("kubeconfig not found")
+		}
+		return errors.New("k3s not found")
+	}
+	return errors.New("status not found")
+}
+
+// Author: Ehsan Etesami
+func (c *Controller) GetRemoteResource(ec echo.Context) error {
+
+	gvk := schema.GroupVersionKind{
+		Group:   ec.Param("group"),
+		Version: ec.Param("version"),
+		Kind:    ec.Param("kind"),
+	}
+
+	claimRef := v12.ObjectReference{Namespace: ec.Param("namespace"), Name: ec.Param("name")}
+	claimRef.SetGroupVersionKind(gvk)
+
+	claim := uclaim.New()
+	err := c.getDynamicResource(&claimRef, claim)
+	if err != nil {
+		return err
+	}
+
+	if s, ok := claim.Object["status"].(map[string]interface{}); ok {
+		if k3s, ok := s["k3s"].(map[string]interface{}); ok {
+			if cfg, ok := k3s["kubeconfig"].(string); ok {
+				config, err := clientcmd.RESTConfigFromKubeConfig([]byte(cfg))
+				if err != nil {
+					return err
+				}
+
+				// Create a clientset for the remote cluster
+				remoteClientset, err := kubernetes.NewForConfig(config)
+				if err != nil {
+					return err
+				}
+				// get specific deploymeny given the name
+				deploymentsClient := remoteClientset.AppsV1().Deployments(metav1.NamespaceDefault)
+				deployment, err := deploymentsClient.Get(context.TODO(), ec.Param("deployName"), metav1.GetOptions{})
+				if err != nil {
+					return err
+				}
+				return ec.JSONPretty(http.StatusOK, deployment, "  ")
 			}
 			return errors.New("kubeconfig not found")
 		}

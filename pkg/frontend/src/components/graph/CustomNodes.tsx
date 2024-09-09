@@ -1,8 +1,10 @@
 import {Handle, NodeProps, Position} from 'reactflow';
-import {Info as InfoIcon, HelpOutline as HelpOutlineIcon, DeleteForever as DeleteForeverIcon} from '@mui/icons-material';
+import {HelpOutline as HelpOutlineIcon} from '@mui/icons-material';
 import {Chip as MuChip, Box} from '@mui/material';
 import { Chip } from "@material-tailwind/react";
+import {useNavigate} from "react-router-dom";
 import {Typography} from "@mui/material";
+import type {K8sResource} from "../../types.ts";
 import {
     HeartBroken as IconUnhealthy,
     NotListedLocation as IconNotFound,
