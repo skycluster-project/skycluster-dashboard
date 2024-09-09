@@ -1,5 +1,7 @@
 import {Handle, NodeProps, Position} from 'reactflow';
-import Box from "@mui/material/Box";
+import {Info as InfoIcon, HelpOutline as HelpOutlineIcon, DeleteForever as DeleteForeverIcon} from '@mui/icons-material';
+import {Chip as MuChip, Box} from '@mui/material';
+import { Chip } from "@material-tailwind/react";
 import {Typography} from "@mui/material";
 import {
     HeartBroken as IconUnhealthy,
@@ -7,6 +9,7 @@ import {
     ReportProblem as IconNotReady,
     SyncDisabled as IconNoSync,
 } from "@mui/icons-material";
+import { getColorFromLabel } from "../../utils.ts";
 
 export enum NodeStatus {
     Ok = "Ok",
@@ -53,7 +56,15 @@ function CustomNode({data, sourcePosition, targetPosition}: NodeProps) {
         }}>
             <Box className="px-3 py-1 border-b border-gray-400 bg-gray-500 bg-opacity-20"
                  sx={{display: 'flex', justifyContent: 'space-between', flexDirection: 'row'}}>
-                <Typography fontSize="x-small" className="uppercase text-xs">{data.type}</Typography>
+                    <>
+                    {data.provider ? (
+                        <Chip className="mx-1 py-0 px-1 uppercase" variant="ghost" 
+                            color={getColorFromLabel(data.provider, data.region)}
+                            value={(data.provider ? "["+data.provider+"]" : "") + (data.region ? " / " + data.region : "")} />
+                    ) : (
+                        <Box></Box>
+                    )} 
+                    </>
                 <Typography fontSize="x-small" className="text-xs" sx={{marginLeft: "0.5rem"}}
                             title={data.apiVersion}>{data.kind}</Typography>
             </Box>
@@ -63,6 +74,15 @@ function CustomNode({data, sourcePosition, targetPosition}: NodeProps) {
                     {data.compositionName ? data.compositionName : data.label}
                 </Typography>
                 <NodeStatusLine data={data}/>
+            </Box>
+            <Box className="px-1 mb-1">
+                <MuChip sx={{ml: 1}}
+                    icon={<HelpOutlineIcon />} label="Details" size="small" variant="outlined" color="secondary"
+                    onClick={() => navigator.clipboard.writeText(
+                        "kubectl describe " + data.kind + " " + data.label
+                    ).then(() => {}, (err) => {
+                        console.error('Could not copy text: ', err);
+                    })} />
             </Box>
             <Handle type="target" position={targetPosition ? targetPosition : Position.Top}/>
             <Handle type="source" position={sourcePosition ? sourcePosition : Position.Bottom}/>

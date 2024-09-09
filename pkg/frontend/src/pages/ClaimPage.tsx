@@ -1,5 +1,6 @@
 import {Alert, Box, Grid, IconButton, LinearProgress, Paper, Typography} from "@mui/material";
-import {useNavigate, useParams} from "react-router-dom";
+import {useParams, NavigateFunction, NavigateOptions} from "react-router-dom";
+import type {To} from "@remix-run/router";
 import {Claim, ClaimExtended} from "../types.ts";
 import {useEffect, useState} from "react";
 import apiClient from "../api.ts";
@@ -14,11 +15,22 @@ import InfoDrawer from "../components/InfoDrawer.tsx";
 import {DataObject as YAMLIcon} from '@mui/icons-material';
 import {graphDataFromClaim} from "../components/graph/graphData.ts";
 
+
+const navigateNewTab: NavigateFunction = (to: To | number, options?: NavigateOptions) => {
+    if (typeof to === 'string') {
+        window.open(to, '_blank');
+    } 
+    else {
+        return;
+    }
+};
+
+
 export default function ClaimPage() {
     const {group: group, version: version, kind: kind, namespace: namespace, name: name} = useParams();
     const [claim, setClaim] = useState<ClaimExtended | null>(null);
     const [error, setError] = useState<object | null>(null);
-    const navigate = useNavigate();
+    // const navigate = useNavigate();
     const [isDrawerOpen, setDrawerOpen] = useState<boolean>(false);
 
     useEffect(() => {
@@ -35,8 +47,8 @@ export default function ClaimPage() {
         return (<LinearProgress/>)
     }
 
-    // console.log(claim)
-    const data = graphDataFromClaim(claim, navigate);
+    // const data = graphDataFromClaim(claim, () => {});
+    const data = graphDataFromClaim(claim, navigateNewTab);
 
     const onClose = () => {
         setDrawerOpen(false)

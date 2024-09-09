@@ -7,7 +7,7 @@ import {useState} from "react";
 import InfoTabs, {ItemContext} from "./InfoTabs.tsx";
 import InfoDrawer from "./InfoDrawer.tsx";
 import { Chip } from "@material-tailwind/react";
-import { colors } from "@material-tailwind/react/types/generic";
+import { getColorFromLabel } from "../utils.ts";
 
 
 type CMListItemProps = {
@@ -20,27 +20,6 @@ const copyToClipboard = (name: string) => {
         console.error('Could not copy text: ', err);
     });
 };
-
-function getColorFromLabel(label: string | undefined): colors | undefined {
-    const colors: colors[] = ["purple", "lime", "blue-gray", "gray", "light-blue", "brown", "deep-orange", "orange", "amber", "yellow", "light-green", "green", 
-        "teal", "cyan", "blue", "indigo", "deep-purple", "pink", "red"];
-    if (!label || typeof label !== 'string') return undefined;
-  
-    // Get the first two letters of the label
-    const key = label.substring(0, 2).toLowerCase();
-  
-    // Create a hash from the key
-    let hash = 0;
-    for (let i = 0; i < key.length; i++) {
-      hash += key.charCodeAt(i);
-    }
-  
-    // Map the hash to an index in the colors 
-    // There are 19 colors currently
-    const index = hash % colors.length;
-  
-    return colors[index];
-  }
 
 function CMListItem({item, onItemClick}: CMListItemProps) {
     const itemConfigType = item.metadata.annotations?.["skycluster-manager.savitestbed.ca/config-type"];

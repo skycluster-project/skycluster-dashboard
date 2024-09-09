@@ -36,6 +36,8 @@ export class GraphData {
                 compositionName: compositionName,
                 status: status[0],
                 statusMsg: status[1],
+                provider: res?.metadata.labels ? res.metadata.labels["skycluster/provider-name"] : null,
+                region: res?.metadata.labels ? res.metadata.labels["skycluster/provider-region"] : null,
                 main: isMain,
                 onClick: onClick == NOOP ? undefined : onClick,
             },

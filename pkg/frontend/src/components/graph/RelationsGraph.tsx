@@ -108,6 +108,8 @@ const RelationsGraph = ({nodes: initialNodes, edges: initialEdges}: GraphProps) 
             connectionLineType={ConnectionLineType.SmoothStep}
             nodesConnectable={false}
             fitView
+            nodesDraggable={false}
+            zoomOnScroll={false}
         >
             <Background variant={BackgroundVariant.Dots} gap={15} size={1} />
             <Controls showInteractive={true} showZoom={true} showFitView={true} position={"top-right"}/>
