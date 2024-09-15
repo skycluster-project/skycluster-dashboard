@@ -143,19 +143,19 @@ const CRDPage = () => {
                                 <Grid item key={cr.metadata.name}>
                                 <Box className="p-1" sx={{border: '0.5px dashed gray'}} key={cr.metadata.name}>
                                     <Typography variant="h6" display="inline">{cr.metadata.name}</Typography>
-                                    {cr.metadata?.annotations?.['skycluster-manager.savitestbed.ca/config-type'] == "provattr-config" && (
+                                    {cr.metadata?.annotations?.['skycluster.io/config-type'] == "provattr-config" && (
                                         <>
                                         <Chip variant="ghost" className="m-1" color="light-blue" size="sm" 
-                                        value={cr.metadata?.annotations?.['skycluster-manager.savitestbed.ca/provider-name']} />
+                                        value={cr.metadata?.annotations?.['skycluster.io/provider-name']} />
                                         <Stack direction="row" spacing={1}>
                                         <Chip variant="ghost" className="rounded-full m-1" size="sm" 
-                                        value={cr.metadata?.annotations?.['skycluster-manager.savitestbed.ca/provider-region']} />
+                                        value={cr.metadata?.annotations?.['skycluster.io/provider-region']} />
                                         <Chip variant="ghost" className="rounded-full m-1" size="sm" 
-                                        value={cr.metadata?.annotations?.['skycluster-manager.savitestbed.ca/provider-type']} />
+                                        value={cr.metadata?.annotations?.['skycluster.io/provider-type']} />
                                         </Stack>
                                         </>
                                     )}
-                                    {cr.metadata?.annotations?.['skycluster-manager.savitestbed.ca/config-type'] == "vs-config" && (
+                                    {cr.metadata?.annotations?.['skycluster.io/config-type'] == "vs-config" && (
                                         <>
                                         {cr.spec?.vserviceCompositions && (
                                             <Box className="m-1 p-1" sx={{'background-color':'#f0f0f0'}}>
@@ -185,7 +185,7 @@ const CRDPage = () => {
                                         </Grid>
                                         </>
                                     )}
-                                    {cr.metadata?.annotations?.['skycluster-manager.savitestbed.ca/config-type'] == "ilp-task" && (
+                                    {cr.metadata?.annotations?.['skycluster.io/config-type'] == "ilp-task" && (
                                         <>
                                         <Box>
                                         {Object.entries(JSON.parse(cr.status?.solution || '{}')).map(([key, value]) => (

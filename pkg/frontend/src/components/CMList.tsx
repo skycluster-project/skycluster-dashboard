@@ -22,10 +22,10 @@ const copyToClipboard = (name: string) => {
 };
 
 function CMListItem({item, onItemClick}: CMListItemProps) {
-    const itemConfigType = item.metadata.annotations?.["skycluster-manager.savitestbed.ca/config-type"];
-    const providerName = item.metadata.annotations?.["skycluster-manager.savitestbed.ca/provider-name"];
-    const providerRegion = item.metadata.annotations?.["skycluster-manager.savitestbed.ca/provider-region"];
-    const providerZone = item.metadata.annotations?.["skycluster-manager.savitestbed.ca/provider-zone"];
+    const itemConfigType = item.metadata.annotations?.["skycluster.io/config-type"];
+    const providerName = item.metadata.annotations?.["skycluster.io/provider-name"];
+    const providerRegion = item.metadata.annotations?.["skycluster.io/provider-region"];
+    const providerZone = item.metadata.annotations?.["skycluster.io/provider-zone"];
     return (
        <Grid item xs={12} md={3} key={item.metadata.name} onClick={() => {onItemClick(item)}} >
             <Card variant="outlined" className="cursor-pointer">
@@ -135,12 +135,12 @@ export default function CMList({items}: CMListProps) {
     
     // Prepare the variables
     items.items.forEach((item) => {
-        const pConfigType = "skycluster-manager.savitestbed.ca/config-type"
-        const pNameSelector = "skycluster-manager.savitestbed.ca/provider-name"
-        const pRegionSelector = "skycluster-manager.savitestbed.ca/provider-region"
-        const pTypeSelector = "skycluster-manager.savitestbed.ca/provider-type"
-        const pZoneSelector = "skycluster-manager.savitestbed.ca/provider-zone"
-        const pSkyClusterRegion = "skycluster-manager.savitestbed.ca/skycluster-region"
+        const pConfigType = "skycluster.io/config-type"
+        const pNameSelector = "skycluster.io/provider-name"
+        const pRegionSelector = "skycluster.io/provider-region"
+        const pTypeSelector = "skycluster.io/provider-type"
+        const pZoneSelector = "skycluster.io/provider-zone"
+        const pSkyClusterRegion = "skycluster.io/skycluster-region"
         let configType = item.metadata?.annotations?.[pConfigType] ?? 'NoType';
         
         // check if configType is "provider-vars" and if so append the provider-name
@@ -211,7 +211,7 @@ export default function CMList({items}: CMListProps) {
           return "NoType"; // or handle empty object case appropriately
         }
       
-        let configType = items[0].metadata.annotations?.["skycluster-manager.savitestbed.ca/config-type"] ?? "NoType";  
+        let configType = items[0].metadata.annotations?.["skycluster.io/config-type"] ?? "NoType";  
         if (configType === "provider-vars") {
             const providerName = items[0].metadata?.labels?.["provider-name"];
             if (providerName) {

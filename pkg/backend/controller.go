@@ -72,7 +72,7 @@ type ManagedUnstructured struct { // no dedicated type for it in base CP, just r
 
 var (
 	// TODO: this is manually hardcoded, should be generated from the CRD
-	SkyClusterAPI                      = "skycluster-manager.savitestbed.ca"
+	SkyClusterAPI                      = "skycluster.io"
 	SkyClusterCoreGroup                = "core." + SkyClusterAPI
 	SkyClusterVersion                  = "v1alpha1"
 	SkyClusterAnnotationManagedBy      = SkyClusterAPI + "/managed-by"
