@@ -22,16 +22,16 @@ const copyToClipboard = (name: string) => {
 };
 
 function CMListItem({item, onItemClick}: CMListItemProps) {
-    const itemConfigType = item.metadata.annotations?.["skycluster.io/config-type"];
-    const providerName = item.metadata.annotations?.["skycluster.io/provider-name"];
-    const providerRegion = item.metadata.annotations?.["skycluster.io/provider-region"];
-    const providerZone = item.metadata.annotations?.["skycluster.io/provider-zone"];
+    const itemConfigType = item.metadata.labels?.["skycluster.io/config-type"];
+    const providerName = item.metadata.labels?.["skycluster.io/provider-name"];
+    const providerRegion = item.metadata.labels?.["skycluster.io/provider-region"];
+    const providerZone = item.metadata.labels?.["skycluster.io/provider-zone"];
     return (
        <Grid item xs={12} md={3} key={item.metadata.name} onClick={() => {onItemClick(item)}} >
             <Card variant="outlined" className="cursor-pointer">
                 <CardActionArea>
                     <CardContent>
-                        { itemConfigType == "provider-vars" && (
+                        { itemConfigType == "provider-mappings" && (
                             <>
                             <Stack direction="row" spacing={1} className="mb-1">
                                 {providerRegion && (
@@ -115,13 +115,14 @@ export default function CMList({items}: CMListProps) {
 
 
     // Define Grouped ConfigMaps
-    // e.g. { "provider-vars-aws": [CM1, CM2], "optimizer": [CM3, CM4] }
+    // e.g. { "provider-mappings-aws": [CM1, CM2], "optimizer": [CM3, CM4] }
     const groupedCMs: { [itemIndex: string]: CM[] } = {};
 
     type ProviderData = {
         identifier: string
         name: string
-        skyClusterRegion?: string
+        locName: string
+        regionAlias?: string
         region?: string
         zone?: string
         type?: string
@@ -137,24 +138,26 @@ export default function CMList({items}: CMListProps) {
     items.items.forEach((item) => {
         const pConfigType = "skycluster.io/config-type"
         const pNameSelector = "skycluster.io/provider-name"
+        const pLocNameSelector = "skycluster.io/provider-loc-name"
         const pRegionSelector = "skycluster.io/provider-region"
         const pTypeSelector = "skycluster.io/provider-type"
         const pZoneSelector = "skycluster.io/provider-zone"
-        const pSkyClusterRegion = "skycluster.io/skycluster-region"
-        let configType = item.metadata?.annotations?.[pConfigType] ?? 'NoType';
+        const pRegionAliasSelector = "skycluster.io/provider-region-alias"
+        let configType = item.metadata?.labels?.[pConfigType] ?? 'NoType';
         
-        // check if configType is "provider-vars" and if so append the provider-name
-        if (configType == "provider-vars") {
+        // check if configType is "provider-mappings" and if so append the provider-name
+        if (configType == "provider-mappings") {
             // This is a provider configmap, we should group by provider name
             const providerIdentifier = item.metadata.name
             const providerName = item.metadata?.labels?.[pNameSelector] ?? "";
-            const providerRegion = item.metadata?.annotations?.[pRegionSelector];
-            const providerType = item.metadata?.annotations?.[pTypeSelector];
-            const providerZone = item.metadata?.annotations?.[pZoneSelector];
-            const providerSkyClusterRegion = item.metadata?.annotations?.[pSkyClusterRegion];
+            const providerLocName = item.metadata?.labels?.[pLocNameSelector] ?? "";
+            const providerRegion = item.metadata?.labels?.[pRegionSelector];
+            const providerType = item.metadata?.labels?.[pTypeSelector];
+            const providerZone = item.metadata?.labels?.[pZoneSelector];
+            const providerRegionAlias = item.metadata?.labels?.[pRegionAliasSelector];
 
             if (providerName != "") {
-                // Construct the configs for this provider (e.g. provider-vars-aws)
+                // Construct the configs for this provider (e.g. provider-mappings-aws)
                 configType += `${providerName}`;
             }
 
@@ -164,15 +167,22 @@ export default function CMList({items}: CMListProps) {
                 providers[providerName] = [];
                 providerNames[providerName] = [];
             }
+
+            // ignore the the zone is default and provider is not azure
+            if (providerZone == "default" && providerName != "azure") {
+                return;
+            }
             // Add the current provider to the list of providers if it doesn't exist
-            // e.g. providers["aws"] = [{name: "aws", region: "us-west-2", skyClusterRegion: "us-west"}]
-            // console.log(providerName, providerRegion, providerZone, providerSkyClusterRegion)
-            if (!providers[providerName].find((pdata) => pdata.identifier == providerName + providerRegion)) {                
+            // e.g. providers["aws"] = [{name: "aws", region: "us-west-2", regionAlias: "us-west"}]
+            // console.log(providerName, providerRegion, providerZone, providerRegionAlias)
+            if (!providers[providerName].find((pdata) => pdata.identifier == providerName + providerRegion + providerZone + providerType)) {                
                 providers[providerName].push({
-                    identifier: providerName + providerRegion, 
+                    identifier: providerName + providerRegion + providerZone + providerType, 
                     name: providerName, 
+                    locName: providerLocName,
                     region: providerRegion,
-                    skyClusterRegion: providerSkyClusterRegion,
+                    regionAlias: providerRegionAlias,
+                    zone: providerZone,
                     type: providerType,
                 });
             }
@@ -211,8 +221,8 @@ export default function CMList({items}: CMListProps) {
           return "NoType"; // or handle empty object case appropriately
         }
       
-        let configType = items[0].metadata.annotations?.["skycluster.io/config-type"] ?? "NoType";  
-        if (configType === "provider-vars") {
+        let configType = items[0].metadata.labels?.["skycluster.io/config-type"] ?? "NoType";  
+        if (configType === "provider-mappings") {
             const providerName = items[0].metadata?.labels?.["provider-name"];
             if (providerName) {
                 configType = `${providerName.toUpperCase()}`;
@@ -276,13 +286,13 @@ export default function CMList({items}: CMListProps) {
                                 <Typography variant="caption">Color Guide:</Typography>
                                 </Box>
                                 <Box className="p-1">
-                                <Typography className="px-1" variant="caption" sx={{'border-left': 'solid .25rem rgb(3 169 244 / 0.8)' }}>Cloud (&lt;50ms)</Typography>
+                                <Typography className="px-1" variant="caption" sx={{'border-left': 'solid .25rem rgb(3 169 244 / 0.8)' }}>Cloud</Typography>
                                 </Box>
                                 <Box className="p-1">
-                                <Typography className="px-1" variant="caption" sx={{'border-left': 'solid .25rem rgb(65 189 104 / 0.8)' }}>Near The Edge (&lt;10ms)</Typography>
+                                <Typography className="px-1" variant="caption" sx={{'border-left': 'solid .25rem rgb(65 189 104 / 0.8)' }}>Near The Edge</Typography>
                                 </Box>
                                 <Box className="p-1">
-                                <Typography className="px-1" variant="caption" sx={{'border-left': 'solid .25rem rgb(244 67 54 / 0.8)' }}>Edge (&lt;1ms)</Typography>
+                                <Typography className="px-1" variant="caption" sx={{'border-left': 'solid .25rem rgb(244 67 54 / 0.8)' }}>Edge</Typography>
                                 </Box>
                             </Stack>
                         </Card>
@@ -300,18 +310,20 @@ export default function CMList({items}: CMListProps) {
                                 <Box className="m-1" sx={{ padding: '0.005rem','border-left': 'solid .25rem rgb(3 169 244 / 0.8)' }}>
                                 {Object.entries(pdata).filter(([_, data]) => data.type == "cloud").map(([_, data]) => (
                                     data.region != "global" &&
-                                    <Tooltip title={data.skyClusterRegion} key={data.identifier}>
-                                    <Chip variant="ghost" color={getColorFromLabel(data.skyClusterRegion)} className="m-1" size="sm" value={data.region} />
+                                    <Tooltip title={data.zone} key={data.identifier}>
+                                    <Chip variant="ghost" color={getColorFromLabel(data.regionAlias)} className="m-1" size="sm" 
+                                        value={`${data.region} (${data.type}) - ${data.locName}`} />
                                     </Tooltip>
                                 ))}
                                 </Box>
                             }
-                            {Object.entries(pdata).find(([_, data]) => data.type == "near-the-edge") &&
+                            {Object.entries(pdata).find(([_, data]) => data.type == "nte") &&
                                 <Box className="m-1" sx={{ padding: '0.005rem', 'border-left': 'solid .25rem rgb(65 189 104 / 0.8)' }}>
-                                {Object.entries(pdata).filter(([_, data]) => data.type == "near-the-edge").map(([_, data]) => (
+                                {Object.entries(pdata).filter(([_, data]) => data.type == "nte").map(([_, data]) => (
                                     data.region != "global" &&
-                                    <Tooltip title={data.skyClusterRegion} key={data.identifier}>
-                                    <Chip variant="ghost" color={getColorFromLabel(data.skyClusterRegion)} className="m-1" size="sm" value={data.region} />
+                                    <Tooltip title={data.zone} key={data.identifier}>
+                                    <Chip variant="ghost" color={getColorFromLabel(data.regionAlias)} className="m-1" size="sm" 
+                                    value={`${data.region} (${data.type}) - ${data.locName}`} />
                                     </Tooltip>
                                 ))}
                                 </Box>
@@ -320,8 +332,9 @@ export default function CMList({items}: CMListProps) {
                                 <Box className="m-1" sx={{ padding: '0.005rem', 'border-left': 'solid .25rem rgb(244 67 54 / 0.8)' }}>
                                 {Object.entries(pdata).filter(([_, data]) => data.type == "edge").map(([_, data]) => (
                                     data.region != "global" &&
-                                    <Tooltip title={data.skyClusterRegion} key={data.identifier}>
-                                    <Chip variant="ghost" color={getColorFromLabel(data.skyClusterRegion)} className="m-1" size="sm" value={data.region} />
+                                    <Tooltip title={data.zone} key={data.identifier}>
+                                    <Chip variant="ghost" color={getColorFromLabel(data.regionAlias)} className="m-1" size="sm" 
+                                    value={`${data.region} (${data.type}) - ${data.locName}`} />
                                     </Tooltip>
                                 ))}
                                 </Box>
@@ -334,7 +347,7 @@ export default function CMList({items}: CMListProps) {
                 
                 <Paper className="p-4">
                     <Typography variant="h6" className="py-2">Providers Details</Typography>
-                    {Object.entries(groupedCMs).filter(([idx, _]) => idx.includes('provider-vars')).map(([itemIndex, items]) => (
+                    {Object.entries(groupedCMs).filter(([idx, _]) => idx.includes('provider-mappings')).map(([itemIndex, items]) => (
                         <Accordion key={itemIndex} expanded={expandedItems[itemIndex] || false} onChange={() => handleAccordionChange(itemIndex)}>
                         <AccordionSummary expandIcon={<ExpandMoreIcon/>}>
                             <Typography variant="h6">{getApiVersion(items)}</Typography>

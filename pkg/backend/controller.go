@@ -72,12 +72,12 @@ type ManagedUnstructured struct { // no dedicated type for it in base CP, just r
 
 var (
 	// TODO: this is manually hardcoded, should be generated from the CRD
-	SkyClusterAPI                      = "skycluster.io"
-	SkyClusterCoreGroup                = "core." + SkyClusterAPI
-	SkyClusterVersion                  = "v1alpha1"
-	SkyClusterAnnotationManagedBy      = SkyClusterAPI + "/managed-by"
-	SkyClusterAnnotationManagedByValue = "skycluster"
-	SkyClusterAnnotationConfigType     = SkyClusterAPI + "/config-type"
+	SkyClusterAPI            = "skycluster.io"
+	SkyClusterCoreGroup      = "core." + SkyClusterAPI
+	SkyClusterVersion        = "v1alpha1"
+	SkyClusterManagedBy      = SkyClusterAPI + "/managed-by"
+	SkyClusterManagedByValue = "skycluster"
+	SkyClusterConfigType     = SkyClusterAPI + "/config-type"
 )
 
 type CRDMap = map[string][]*v1.CustomResourceDefinition
@@ -138,10 +138,10 @@ func (c *Controller) GetCMs(ec echo.Context) error {
 
 	// Filter configmaps based on the owner reference API version
 	// SkyClusterAPIVersion := SkyClusterCoreGroup + "/" + SkyClusterVersion
-	// Filter based on the annotation, should contain the managed-by annotation
+	// Filter based on the labels, should contain the managed-by label
 	filteredConfigMaps := &v12.ConfigMapList{Items: []v12.ConfigMap{}}
 	for _, configMap := range configMaps.Items {
-		if v, e := configMap.Annotations[SkyClusterAnnotationManagedBy]; e && v == SkyClusterAnnotationManagedByValue {
+		if v, e := configMap.Labels[SkyClusterManagedBy]; e && v == SkyClusterManagedByValue {
 			filteredConfigMaps.Items = append(filteredConfigMaps.Items, configMap)
 		}
 		// for _, ownerReference := range configMap.OwnerReferences {
