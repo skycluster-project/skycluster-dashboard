@@ -460,18 +460,19 @@ func (c *Controller) GetClaim(ec echo.Context) error {
 	}
 
 	if ec.QueryParam("full") != "" {
-		xrRef := claim.GetResourceReference()
+		if xrRef := claim.GetResourceReference(); xrRef != nil {
 
-		xr := uxres.New()
-		_ = c.getDynamicResource(xrRef, xr)
-		claim.Object["compositeResource"] = xr
+			xr := uxres.New()
+			_ = c.getDynamicResource(xrRef, xr)
+			claim.Object["compositeResource"] = xr
 
-		err := c.fillManagedResources(ec, xr)
-		if err != nil {
-			return err
+			err := c.fillManagedResources(ec, xr)
+			if err != nil {
+				return err
+			}
+
+			c.fillCompositionByRef(claim)
 		}
-
-		c.fillCompositionByRef(claim)
 	}
 	return ec.JSONPretty(http.StatusOK, claim.Object, "  ")
 }
