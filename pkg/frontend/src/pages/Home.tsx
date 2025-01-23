@@ -5,12 +5,12 @@ import apiClient from "../api.ts";
 import {useNavigate} from "react-router-dom";
 import ClaimsIcon from '@mui/icons-material/PanToolTwoTone';
 import ManagedIcon from '@mui/icons-material/HubTwoTone';
-import ProvidersIcon from '@mui/icons-material/GridViewTwoTone';
+// import ProvidersIcon from '@mui/icons-material/GridViewTwoTone';
 import PageBody from "../components/PageBody.tsx";
 import XRDsIcon from "@mui/icons-material/SchemaTwoTone";
-import CompositionsIcon from "@mui/icons-material/AccountTreeTwoTone";
+// import CompositionsIcon from "@mui/icons-material/AccountTreeTwoTone";
 import CompositeIcon from "@mui/icons-material/PolylineTwoTone";
-import HomePageClaimGraph from "../components/HomePageClaimGraph.tsx";
+// import HomePageClaimGraph from "../components/HomePageClaimGraph.tsx";
 
 function Home() {
     const navigate = useNavigate();

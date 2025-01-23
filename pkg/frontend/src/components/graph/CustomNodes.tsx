@@ -1,16 +1,12 @@
 import {Handle, NodeProps, Position} from 'reactflow';
-import {HelpOutline as HelpOutlineIcon} from '@mui/icons-material';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import {Chip as MuChip, Box} from '@mui/material';
 import { Chip } from "@material-tailwind/react";
-import {useNavigate} from "react-router-dom";
 import {Typography} from "@mui/material";
-import type {K8sResource} from "../../types.ts";
-import {
-    HeartBroken as IconUnhealthy,
-    NotListedLocation as IconNotFound,
-    ReportProblem as IconNotReady,
-    SyncDisabled as IconNoSync,
-} from "@mui/icons-material";
+import IconUnhealthy from '@mui/icons-material/HeartBroken';
+import IconNotFound from '@mui/icons-material/NotListedLocation';
+import IconNotReady from '@mui/icons-material/ReportProblem';
+import IconNoSync from '@mui/icons-material/SyncDisabled';
 import { getColorFromLabel } from "../../utils.ts";
 
 export enum NodeStatus {

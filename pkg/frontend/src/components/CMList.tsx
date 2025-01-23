@@ -1,4 +1,5 @@
-import { ExpandMore as ExpandMoreIcon, DeleteForever as DeleteForeverIcon} from '@mui/icons-material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import {Chip as MuChip, Tooltip, Paper, Box, Card, CardContent, Grid, CardActionArea, Button, Stack, Accordion, AccordionSummary, AccordionDetails} from '@mui/material';
 import {ItemList, CM, K8sResource} from "../types.ts";
 import Typography from "@mui/material/Typography";

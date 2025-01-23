@@ -12,7 +12,8 @@ import PageBody from "../components/PageBody.tsx";
 import InfoTabs, {ItemContext} from "../components/InfoTabs.tsx";
 import ConditionChips from "../components/ConditionChips.tsx";
 import InfoDrawer from "../components/InfoDrawer.tsx";
-import {DataObject as YAMLIcon, Apps as AppsIcon} from '@mui/icons-material';
+import YAMLIcon from '@mui/icons-material/DataObject';
+import AppsIcon from '@mui/icons-material/Apps';
 import {graphDataFromClaim} from "../components/graph/graphData.ts";
 
 
@@ -48,7 +49,11 @@ export default function ClaimPage() {
     }
 
     // const data = graphDataFromClaim(claim, () => {});
-    const data = graphDataFromClaim(claim, navigateNewTab);
+    let data;
+    if (claim.compositeResource) {
+        data = graphDataFromClaim(claim, navigateNewTab);
+    }
+    // const data = claim.compositeResource && graphDataFromClaim(claim, navigateNewTab);
 
     const onClose = () => {
         setDrawerOpen(false)
@@ -110,12 +115,14 @@ export default function ClaimPage() {
                             <ConditionList conditions={claim.status?.conditions}></ConditionList>
                         </Paper>
                     </Grid>
-                    <Grid item xs={12} md={12}>
-                        <Paper className="p-4 flex flex-col" sx={{height: '60rem'}}>
-                            <Typography variant="h6">Relations</Typography>
-                            <RelationsGraph nodes={data.nodes} edges={data.edges}></RelationsGraph>
-                        </Paper>
-                    </Grid>
+                    {data && (
+                        <Grid item xs={12} md={12}>
+                            <Paper className="p-4 flex flex-col" sx={{height: '60rem'}}>
+                                <Typography variant="h6">Relations</Typography>
+                                <RelationsGraph nodes={data.nodes} edges={data.edges}></RelationsGraph>
+                            </Paper>
+                        </Grid>
+                    )}
                     <Grid item xs={12} md={12}>
                         <Paper className="p-4">
                             <Typography variant="h6">Events</Typography>

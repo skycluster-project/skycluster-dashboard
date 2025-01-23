@@ -1,4 +1,8 @@
-import { Info as InfoIcon, ExpandMore as ExpandMoreIcon, HelpOutline as HelpOutlineIcon, DeleteForever as DeleteForeverIcon, Refresh as RefreshIcon } from '@mui/icons-material';
+import InfoIcon from '@mui/icons-material/Info';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
+import RefreshIcon from '@mui/icons-material/Refresh';
 import {CircularProgress, Stack, Card, Chip, CardContent, Grid, Accordion, AccordionSummary, AccordionDetails, List, Button, Box, Alert} from '@mui/material';
 import {CompositeResource, CompositeResourceExtended, ItemList, K8sReference, K8sResource} from "../types.ts";
 import Typography from "@mui/material/Typography";

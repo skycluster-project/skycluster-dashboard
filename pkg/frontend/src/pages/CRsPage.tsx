@@ -1,4 +1,6 @@
-import { Info as InfoIcon, HelpOutline as HelpOutlineIcon, DeleteForever as DeleteForeverIcon} from '@mui/icons-material';
+import InfoIcon from '@mui/icons-material/Info';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import {Tooltip, Stack, Alert, Box, Grid, Chip as MuChip, Paper, Typography} from "@mui/material";
 import {useNavigate, useParams} from "react-router-dom";
 import {SkyClusterResource, CRD, ItemList} from "../types.ts";
