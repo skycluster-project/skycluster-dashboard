@@ -1,6 +1,6 @@
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
-import {Chip as MuChip, Tooltip, Paper, Box, Card, CardContent, Grid, CardActionArea, Button, Stack, Accordion, AccordionSummary, AccordionDetails} from '@mui/material';
+import {Chip as MuChip, Tooltip, Paper, Box, Card, CardContent, Grid, CardActionArea, Stack, Accordion, AccordionSummary, AccordionDetails} from '@mui/material';
 import {ItemList, CM, K8sResource} from "../types.ts";
 import Typography from "@mui/material/Typography";
 import {useNavigate, useParams} from "react-router-dom";
@@ -8,6 +8,7 @@ import {useState} from "react";
 import InfoTabs, {ItemContext} from "./InfoTabs.tsx";
 import InfoDrawer from "./InfoDrawer.tsx";
 import { Chip } from "@material-tailwind/react";
+import { Button } from "@material-tailwind/react";
 import { getColorFromLabel } from "../utils.ts";
 
 
@@ -25,45 +26,20 @@ const copyToClipboard = (name: string) => {
 function CMListItem({item, onItemClick}: CMListItemProps) {
     const itemConfigType = item.metadata.labels?.["skycluster.io/config-type"];
     const providerName = item.metadata.labels?.["skycluster.io/provider-name"];
+    const providerType = item.metadata.labels?.["skycluster.io/provider-type"];
     const providerRegion = item.metadata.labels?.["skycluster.io/provider-region"];
+    const providerRegionAlias = item.metadata.labels?.["skycluster.io/provider-region-alias"];
     const providerZone = item.metadata.labels?.["skycluster.io/provider-zone"];
+    const providerLocName = item.metadata.labels?.["skycluster.io/provider-loc-name"];
+    let pLocName = providerLocName? "\n" + providerLocName : "";
     return (
-       <Grid item xs={12} md={3} key={item.metadata.name} onClick={() => {onItemClick(item)}} >
-            <Card variant="outlined" className="cursor-pointer">
-                <CardActionArea>
-                    <CardContent>
-                        { itemConfigType == "provider-mappings" && (
-                            <>
-                            <Stack direction="row" spacing={1} className="mb-1">
-                                {providerRegion && (
-                                    <>
-                                    <Typography variant="body2">Region:</Typography>
-                                    <Chip variant="ghost" size="sm" value={providerRegion} /> 
-                                    </>
-                                )}
-                            </Stack>
-                            <Stack direction="row" spacing={1}>
-                                {providerZone && providerZone == "default" ? (
-                                    <Chip variant="ghost" color="blue" size="sm" value={providerZone}/>
-                                ) : (
-                                    <>
-                                    <Typography variant="body2">Zone:</Typography>
-                                    <Chip variant="ghost" size="sm" value={providerZone}/>
-                                    </>
-                                )}
-                            </Stack>
-                            </>
-                        )}
-                        { itemConfigType == "optimizer" && (
-                            <Typography variant="body2" display="inline">{item.metadata.name}</Typography>
-                        )}
-                        { itemConfigType == "region-vars" && (
-                            <Typography variant="body2" display="inline">{item.metadata.name}</Typography>
-                        )}
-                    </CardContent>
-                </CardActionArea>
-            </Card>
-        </Grid>
+            <Box onClick={() => {onItemClick(item)}} className="m-1" 
+                sx={{ cursor: 'pointer', padding: '0.005rem' }}>
+                <Tooltip title={providerZone + ', ' + pLocName}>
+                <Chip variant="ghost" color={getColorFromLabel(providerRegionAlias)} className="m-0" size="sm" 
+                    value={`${providerRegion} (${providerType})`} />
+                </Tooltip>
+            </Box>
     );
 }
 
@@ -132,8 +108,6 @@ export default function CMList({items}: CMListProps) {
     const providerNames: { [providerName: string]: string[] } = {};
     let defaultProviderCount = 0;
 
-    // define a list of strings
-    const regionList: CM[] = [];
     
     // Prepare the variables
     items.items.forEach((item) => {
@@ -157,8 +131,8 @@ export default function CMList({items}: CMListProps) {
             const providerZone = item.metadata?.labels?.[pZoneSelector];
             const providerRegionAlias = item.metadata?.labels?.[pRegionAliasSelector];
 
+            // Construct the configs for this provider (e.g. provider-mappings-aws)
             if (providerName != "") {
-                // Construct the configs for this provider (e.g. provider-mappings-aws)
                 configType += `${providerName}`;
             }
 
@@ -169,10 +143,6 @@ export default function CMList({items}: CMListProps) {
                 providerNames[providerName] = [];
             }
 
-            // ignore the the zone is default and provider is not azure
-            if (providerZone == "default" && providerName != "azure") {
-                return;
-            }
             // Add the current provider to the list of providers if it doesn't exist
             // e.g. providers["aws"] = [{name: "aws", region: "us-west-2", regionAlias: "us-west"}]
             // console.log(providerName, providerRegion, providerZone, providerRegionAlias)
@@ -193,15 +163,7 @@ export default function CMList({items}: CMListProps) {
             if (!providerNames[providerName].includes(providerIdentifier)) {
                 providerNames[providerName].push(providerIdentifier);
             }
-
-            // Ignore if the zone is "default" or the region is "global"
-            // These are used for internal purposes and should not be displayed
-            providerZone == "default" && providerRegion != "global" ? defaultProviderCount++ : null;
-
-        } else if (configType === "region-vars") {
-            // This is a region configmap, we should keep the region name
-            regionList.push(item);
-        }
+        } 
         if (!groupedCMs[configType]) {
             groupedCMs[configType] = [];
         }
@@ -212,11 +174,6 @@ export default function CMList({items}: CMListProps) {
         setExpandedItems({});
     };
 
-    type objectData = {
-        apiVersion: string,
-        name: string,
-    }
-
     const getApiVersion = (items: CM[]): string => {
         if (items.length === 0) {
           return "NoType"; // or handle empty object case appropriately
@@ -224,14 +181,12 @@ export default function CMList({items}: CMListProps) {
       
         let configType = items[0].metadata.labels?.["skycluster.io/config-type"] ?? "NoType";  
         if (configType === "provider-mappings") {
-            const providerName = items[0].metadata?.labels?.["provider-name"];
+            const providerName = items[0].metadata?.labels?.["skycluster.io/provider-name"];
             if (providerName) {
                 configType = `${providerName.toUpperCase()}`;
             }
         } else if (configType === "optimizer") {
             configType = "Optimizer";
-        } else if (configType === "region-vars") {
-            configType = "Regions Configs";
         }
         return configType;
     };
@@ -265,154 +220,80 @@ export default function CMList({items}: CMListProps) {
             <Stack spacing={2} className="my-8">
                 <Box>
                     <Paper className="p-2">
-                        <Typography variant="h6" className="py-2">Regions Overview</Typography>
-                        <Card variant="outlined" className="p-1">
-                        <Grid container spacing={1} alignItems="stretch" className="py-1" >
-                        {Object.entries(regionList).map(([_, item]) => (
-                            <Grid item xs="auto" key={item.data["region-name"]}>
-                                <Box display="flex" alignItems="center" >
-                                <Tooltip title={item.data["region-fullname"]} >
-                                    <Chip className="mx-1" variant="ghost" 
-                                        color={getColorFromLabel(item.data["region-name"])}
-                                        value={item.data["region-name"]} />
-                                </Tooltip>
-                                </Box>
-                            </Grid>
-                        ))}
-                        </Grid>
-                        </Card>
                         <Card variant="outlined" className="my-1 p-1">
+                            <Box className="p-1">
+                            <Typography variant="h6">Color Guide:</Typography>
+                            </Box>
                             <Stack direction="row"> 
                                 <Box className="p-1">
-                                <Typography variant="caption">Color Guide:</Typography>
+                                <Typography className="px-1" variant="caption" sx={{borderLeft: 'solid 0.75rem rgba(3, 169, 244, 0.8)', borderTopLeftRadius: '0.375rem', borderBottomLeftRadius: '0.375rem' }}>Cloud</Typography>
                                 </Box>
                                 <Box className="p-1">
-                                <Typography className="px-1" variant="caption" sx={{'border-left': 'solid .25rem rgb(3 169 244 / 0.8)' }}>Cloud</Typography>
+                                <Typography className="px-1" variant="caption" sx={{borderLeft: 'solid .75rem rgb(65 189 104 / 0.8)', borderTopLeftRadius: '0.375rem', borderBottomLeftRadius: '0.375rem' }}>Near The Edge</Typography>
                                 </Box>
                                 <Box className="p-1">
-                                <Typography className="px-1" variant="caption" sx={{'border-left': 'solid .25rem rgb(65 189 104 / 0.8)' }}>Near The Edge</Typography>
-                                </Box>
-                                <Box className="p-1">
-                                <Typography className="px-1" variant="caption" sx={{'border-left': 'solid .25rem rgb(244 67 54 / 0.8)' }}>Edge</Typography>
+                                <Typography className="px-1" variant="caption" sx={{borderLeft: 'solid .75rem rgb(244 67 54 / 0.8)', borderTopLeftRadius: '0.375rem', borderBottomLeftRadius: '0.375rem' }}>Edge</Typography>
                                 </Box>
                             </Stack>
                         </Card>
                     </Paper>
                 </Box>
-                <Box>
-                    <Paper className="p-2">
-                    <Typography variant="h6" className="py-2">Providers Overview</Typography>
-                    <Grid container spacing={0.5} alignItems="stretch">
-                    {Object.entries(providers).map(([providerName, pdata]) => (
-                        <Grid item xs="auto" key={providerName}>
-                        <Card variant="outlined" className="p-0">
-                            <Typography className="px-2" variant="h6">{providerName}</Typography>
-                            {Object.entries(pdata).find(([_, data]) => data.type == "cloud") &&
-                                <Box className="m-1" sx={{ padding: '0.005rem','border-left': 'solid .25rem rgb(3 169 244 / 0.8)' }}>
-                                {Object.entries(pdata).filter(([_, data]) => data.type == "cloud").map(([_, data]) => (
-                                    data.region != "global" &&
-                                    <Tooltip title={data.zone} key={data.identifier}>
-                                    <Chip variant="ghost" color={getColorFromLabel(data.regionAlias)} className="m-1" size="sm" 
-                                        value={`${data.region} (${data.type}) - ${data.locName}`} />
-                                    </Tooltip>
-                                ))}
-                                </Box>
-                            }
-                            {Object.entries(pdata).find(([_, data]) => data.type == "nte") &&
-                                <Box className="m-1" sx={{ padding: '0.005rem', 'border-left': 'solid .25rem rgb(65 189 104 / 0.8)' }}>
-                                {Object.entries(pdata).filter(([_, data]) => data.type == "nte").map(([_, data]) => (
-                                    data.region != "global" &&
-                                    <Tooltip title={data.zone} key={data.identifier}>
-                                    <Chip variant="ghost" color={getColorFromLabel(data.regionAlias)} className="m-1" size="sm" 
-                                    value={`${data.region} (${data.type}) - ${data.locName}`} />
-                                    </Tooltip>
-                                ))}
-                                </Box>
-                            }
-                            {Object.entries(pdata).find(([_, data]) => data.type == "edge") &&
-                                <Box className="m-1" sx={{ padding: '0.005rem', 'border-left': 'solid .25rem rgb(244 67 54 / 0.8)' }}>
-                                {Object.entries(pdata).filter(([_, data]) => data.type == "edge").map(([_, data]) => (
-                                    data.region != "global" &&
-                                    <Tooltip title={data.zone} key={data.identifier}>
-                                    <Chip variant="ghost" color={getColorFromLabel(data.regionAlias)} className="m-1" size="sm" 
-                                    value={`${data.region} (${data.type}) - ${data.locName}`} />
-                                    </Tooltip>
-                                ))}
-                                </Box>
-                            }
-                        </Card></Grid>
-                    ))}
-                    </Grid>
-                    </Paper>
-                </Box>
                 
                 <Paper className="p-4">
                     <Typography variant="h6" className="py-2">Providers Details</Typography>
-                    {Object.entries(groupedCMs).filter(([idx, _]) => idx.includes('provider-mappings')).map(([itemIndex, items]) => (
-                        <Accordion key={itemIndex} expanded={expandedItems[itemIndex] || false} onChange={() => handleAccordionChange(itemIndex)}>
-                        <AccordionSummary expandIcon={<ExpandMoreIcon/>}>
-                            <Typography variant="h6">{getApiVersion(items)}</Typography>
-                        </AccordionSummary>
-                        <AccordionDetails>
-                            <Grid container spacing={2}>
-                            {items?.map((item: CM) => (
+                    <Grid container spacing={2}>
+                    {Object.entries(groupedCMs).filter(([idx, _]) => idx.includes('provider-mappings')).map(([_, items]) => (
+                        <Grid item xs={3} key={getApiVersion(items)}>
+                        <Typography variant="h6" className="py-2">{getApiVersion(items)}</Typography>
+                        {Object.entries(items).find(([_, item]) => item.metadata.labels?.["skycluster.io/provider-type"] == "cloud") &&
+                            <Box className="m-1" sx={{ padding: '0.005rem', borderLeft: 'solid .25rem rgb(3 169 244 / 0.8)' }}>
+                                {Object.entries(items).filter(([_, item]) => item.metadata.labels?.["skycluster.io/provider-type"] == "cloud").map(([_, item]) =>  (
                                 <CMListItem item={item} key={item.metadata.name} onItemClick={onItemClick}/>
                             ))}
-                            </Grid>
-                            <Box className="mt-2"><MuChip 
-                                icon={<DeleteForeverIcon />} size="small" label="Delete All" variant="outlined" color="error"
-                                onClick={() => 
-                                    copyToClipboard(
-                                "kubectl delete cm " + providerNames[getApiVersion(items).toLowerCase()].join(' '))} />
                             </Box>
-                        </AccordionDetails>
-                        </Accordion>
+                        }
+                        {Object.entries(items).find(([_, item]) => item.metadata.labels?.["skycluster.io/provider-type"] == "nte") &&
+                            <Box className="m-1" sx={{ padding: '0.005rem', borderLeft: 'solid .25rem rgb(65 189 104 / 0.8)' }}>
+                                {Object.entries(items).filter(([_, item]) => item.metadata.labels?.["skycluster.io/provider-type"] == "nte").map(([_, item]) =>  (
+                                <CMListItem item={item} key={item.metadata.name} onItemClick={onItemClick}/>
+                            ))}
+                            </Box>
+                        }
+                        {Object.entries(items).find(([_, item]) => item.metadata.labels?.["skycluster.io/provider-type"] == "edge") &&
+                            <Box className="m-1" sx={{ padding: '0.005rem', borderLeft: 'solid .25rem rgb(244 67 54 / 0.8)' }}>
+                                {Object.entries(items).filter(([_, item]) => item.metadata.labels?.["skycluster.io/provider-type"] == "edge").map(([_, item]) =>  (
+                                <CMListItem item={item} key={item.metadata.name} onItemClick={onItemClick}/>
+                            ))}
+                            </Box>
+                        }
+                        </Grid>
                     ))}
+                    </Grid>
                 </Paper>
+
+
                 <Paper className="p-4">
-                {Object.entries(groupedCMs).filter(([idx, _]) => idx.includes('region-vars')).map(([itemIndex, items]) => (
-                    <Accordion key={itemIndex} expanded={expandedItems[itemIndex] || false} onChange={() => handleAccordionChange(itemIndex)}>
-                    <AccordionSummary expandIcon={<ExpandMoreIcon/>}>
-                        <Typography variant="h6">{getApiVersion(items)}</Typography>
-                    </AccordionSummary>
-                    <AccordionDetails>
+                    <Typography variant="h6" className="py-2">Providers Details (Globals and Defaults)</Typography>
+                    <Accordion key="provider-mappings-default" expanded={expandedItems["provider-mappings-default"] || false} onChange={() => handleAccordionChange("provider-mappings-default")}>
+                        <AccordionSummary expandIcon={<ExpandMoreIcon/>}>
+                            <Typography variant="h6">All Providers</Typography>
+                        </AccordionSummary>
+                        <AccordionDetails>
                         <Grid container spacing={2}>
-                        {items?.map((item: CM) => (
-                            <CMListItem item={item} key={item.metadata.name} onItemClick={onItemClick}/>
-                        ))}
+                        {Object.entries(groupedCMs).filter(([idx, _]) => idx.includes('provider-mappings')).map(([itemIndex, items]) => (
+                                <Grid item xs={3} key={itemIndex}>
+                                {items?.filter((item) => item.metadata.labels?.["skycluster.io/provider-type"] == "default").map((item: CM) => (
+                                        <CMListItem item={item} key={item.metadata.name} onItemClick={onItemClick}/>
+                                ))}
+                                </Grid>
+                            ))}
                         </Grid>
-                        <Box className="mt-2"><MuChip 
-                            icon={<DeleteForeverIcon />} size="small" label="Delete All" variant="outlined" color="error"
-                            onClick={() => 
-                                copyToClipboard(
-                            "kubectl delete cm " + providerNames[getApiVersion(items).toLowerCase()].join(' '))} />
-                        </Box>
-                    </AccordionDetails>
+                        </AccordionDetails>
                     </Accordion>
-                ))}
                 </Paper>
-                <Paper className="p-4">
-                {Object.entries(groupedCMs).filter(([idx, _]) => idx.includes('optimizer')).map(([itemIndex, items]) => (
-                    <Accordion key={itemIndex} expanded={expandedItems[itemIndex] || false} onChange={() => handleAccordionChange(itemIndex)}>
-                    <AccordionSummary expandIcon={<ExpandMoreIcon/>}>
-                        <Typography variant="h6">{getApiVersion(items)}</Typography>
-                    </AccordionSummary>
-                    <AccordionDetails>
-                        <Grid container spacing={2}>
-                        {items?.map((item: CM) => (
-                            <CMListItem item={item} key={item.metadata.name} onItemClick={onItemClick}/>
-                        ))}
-                        </Grid>
-                        <Box className="mt-2"><MuChip 
-                            icon={<DeleteForeverIcon />} size="small" label="Delete All" variant="outlined" color="error"
-                            onClick={() => 
-                                copyToClipboard(
-                            "kubectl delete cm " + providerNames[getApiVersion(items).toLowerCase()].join(' '))} />
-                        </Box>
-                    </AccordionDetails>
-                    </Accordion>
-                ))}
-                </Paper>
+                
+                
+                
             </Stack>
         </div>
         <InfoDrawer isOpen={isDrawerOpen} onClose={onClose} type="ConfigMaps" title={bridge.curItem.metadata.name}>

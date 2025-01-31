@@ -49,6 +49,7 @@ const CRDPage = () => {
 
     // create a list of all cr.metadata.name separated by spaces
     const crNames = crs.items.map((cr) => cr.metadata.name).join(" ");
+    // TODO: If the cr objects are within different namespaces the "DeleteAll" button will not work
 
     const onClose = () => {
         setDrawerOpen(false)
@@ -203,14 +204,14 @@ const CRDPage = () => {
                                     <Box sx={{display: 'flex', flexDirection: 'row', p: 0, m: 0}}>
                                         <MuChip sx={{ p: 0, mt: 0.5, ml: 1, '& > *': {ml: '8px !important', mr: '-8px !important',}, }}
                                             icon={<InfoIcon />} size="small" variant="outlined" color="primary"
-                                            onClick={() => copyToClipboard("kubectl get " + cr.kind + " " + cr.metadata.name)} />
+                                            onClick={() => copyToClipboard("kubectl get " + "-n " + cr.metadata.namespace + " " + cr.kind + " " + cr.metadata.name)} />
                                         <MuChip sx={{ p: 0, mt: 0.5, ml: 1, '& > *': {ml: '8px !important', mr: '-8px !important',}, }}
                                             icon={<HelpOutlineIcon />} size="small" variant="outlined" color="secondary"
                                             onClick={() => onItemClick(cr)}
                                         />
                                         <MuChip sx={{ p: 0, mt: 0.5, ml: 1, '& > *': {ml: '8px !important', mr: '-8px !important',}, }}
                                             icon={<DeleteForeverIcon />} size="small" variant="outlined" color="error"
-                                            onClick={() => copyToClipboard("kubectl delete " + cr.kind + " " + cr.metadata.name)} />
+                                            onClick={() => copyToClipboard("kubectl delete " + "-n " + cr.metadata.namespace + " " + cr.kind + " " + cr.metadata.name)} />
                                     </Box>
                                 </Box>
                             </Grid>
