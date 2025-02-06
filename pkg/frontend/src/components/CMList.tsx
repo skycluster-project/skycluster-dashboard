@@ -282,7 +282,7 @@ export default function CMList({items}: CMListProps) {
                         <Grid container spacing={2}>
                         {Object.entries(groupedCMs).filter(([idx, _]) => idx.includes('provider-mappings')).map(([itemIndex, items]) => (
                                 <Grid item xs={3} key={itemIndex}>
-                                {items?.filter((item) => item.metadata.labels?.["skycluster.io/provider-type"] == "default").map((item: CM) => (
+                                {items?.filter((item) => item.metadata.labels?.["skycluster.io/provider-type"] == "global").map((item: CM) => (
                                         <CMListItem item={item} key={item.metadata.name} onItemClick={onItemClick}/>
                                 ))}
                                 </Grid>

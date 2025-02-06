@@ -41,7 +41,18 @@ function ListItem({item: initialItem, onItemClick}: ItemProps) {
         try {
             const refreshedData = await apiClient.getCompositeResource(
                 item.apiVersion.split('/')[0], item.apiVersion.split('/')[1], item.kind, item.metadata.name);
-            setItem(refreshedData);
+            const { 
+                parentXR, 
+                claim, 
+                managedResourcesClaims,
+                managedResourcesXRs, 
+                managedResources, 
+                composition: {
+                    metadata: {managedFields, ...metadataWithoutManagedFields }, 
+                    ...compositionWithoutMetadata
+                },
+                ...dataWithoutComposite } = refreshedData;
+            setItem(dataWithoutComposite);
         } catch (error) {
             console.error("Error refreshing data:", error);
         } finally {
