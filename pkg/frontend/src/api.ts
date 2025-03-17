@@ -14,7 +14,8 @@ import {
     XRD,
     CRD,
     CM,
-    K8sResource
+    K8sResource,
+    SkyClusterResource
 } from "./types.ts";
 import {sendStatsToHeap} from "./utils.ts";
 
@@ -119,6 +120,19 @@ class APIClient {
     getManagedResource = async (group?: string, version?: string, kind?: string, name?: string) => {
         const response = await this.innterFetch(`/api/managed/` + group + "/" + version + "/" + kind + "/" + name + "?full=1");
         const data: ManagedResourceExtended = await response.json();
+        return data;
+    };
+
+    getSkyClusterResourcesList = async () => {
+        const response = await this.innterFetch(`/api/skycluster`);
+        const data: ItemList<SkyClusterResource> = await response.json();
+        sendStatsToHeap('List XRs', {count: data.items.length});
+        return data;
+    };
+
+    getSkyClusterResource = async (group?: string, version?: string, kind?: string, name?: string) => {
+        const response = await this.innterFetch(`/api/SkyCluster/` + group + "/" + version + "/" + kind + "/" + name + "?full=1");
+        const data: SkyClusterResource = await response.json();
         return data;
     };
 

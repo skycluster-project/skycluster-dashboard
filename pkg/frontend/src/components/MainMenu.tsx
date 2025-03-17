@@ -55,6 +55,14 @@ export default function MainMenu() {
                     <ListItemText primary="SkyCluster CRD"/>
                 </ListItemButton>
             </ListItem>
+            <ListItem key="SkyCluster Resources" disablePadding>
+                <ListItemButton component={RouterLink} to="/skycluster" sx={styleHighLight("/skycluster")}>
+                    <ListItemIcon>
+                        <CompositeIcon/>
+                    </ListItemIcon>
+                    <ListItemText primary="SkyCluster Resources"/>
+                </ListItemButton>
+            </ListItem>
             <ListItem key="Composite Resources" disablePadding>
                 <ListItemButton component={RouterLink} to="/composite" sx={styleHighLight("/composite")}>
                     <ListItemIcon>

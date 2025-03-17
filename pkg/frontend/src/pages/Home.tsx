@@ -41,6 +41,11 @@ function Home() {
                         }} icon={<XRDsIcon fontSize={"large"}/>}/>
                     </Grid>
                     <Grid item sm={12} md={6} lg={3}>
+                        <HomePageBlock title="SkyCluster Resources" getter={apiClient.getSkyClusterResourcesList} onClick={() => {
+                            navigate("skycluster")
+                        }} icon={<XRDsIcon fontSize={"large"}/>}/>
+                    </Grid>
+                    <Grid item sm={12} md={6} lg={3}>
                         <HomePageBlock title="Composite Resources" getter={apiClient.getCompositeResourcesList} onClick={() => {
                             navigate("composite")
                         }} icon={<CompositeIcon fontSize={"large"}/>}/>

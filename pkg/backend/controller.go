@@ -786,6 +786,68 @@ func (c *Controller) GetComposite(ec echo.Context) error {
 	return ec.JSONPretty(http.StatusOK, xr, "  ")
 }
 
+func (c *Controller) GetSkyClusterResources(ec echo.Context) error {
+	res := unstructured.UnstructuredList{Items: []unstructured.Unstructured{}}
+
+	gvr := []schema.GroupVersionResource{
+		{Group: "svc.skycluster.io",
+			Version:  "v1alpha1",
+			Resource: "skyapps",
+		},
+		{
+			Group:    "core.skycluster.io",
+			Version:  "v1alpha1",
+			Resource: "skyxrds",
+		},
+		{
+			Group:    "core.skycluster.io",
+			Version:  "v1alpha1",
+			Resource: "ilptasks",
+		},
+		{
+			Group:    "policy.skycluster.io",
+			Version:  "v1alpha1",
+			Resource: "dataflowpolicies",
+		},
+		{
+			Group:    "policy.skycluster.io",
+			Version:  "v1alpha1",
+			Resource: "deploymentpolicies",
+		},
+	}
+	for _, thisGvr := range gvr {
+		list, err := c.dynamicClient.Resource(thisGvr).Namespace("").List(c.ctx, metav1.ListOptions{})
+		if err != nil {
+			return err
+		}
+		res.Items = append(res.Items, list.Items...)
+	}
+
+	return ec.JSONPretty(http.StatusOK, res, "  ")
+}
+
+func (c *Controller) GetSkyClusterResource(ec echo.Context) error {
+	res := unstructured.UnstructuredList{Items: []unstructured.Unstructured{}}
+
+	gvk := schema.GroupVersionKind{
+		Group:   ec.Param("group"),
+		Version: ec.Param("version"),
+		Kind:    ec.Param("kind"),
+	}
+	list, err := c.dynamicClient.Resource(
+		schema.GroupVersionResource{
+			Group:    gvk.Group,
+			Version:  gvk.Version,
+			Resource: utils.Plural(gvk.Kind),
+		}).Namespace("").List(c.ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	res.Items = append(res.Items, list.Items...)
+
+	return ec.JSONPretty(http.StatusOK, res, "  ")
+}
+
 func (c *Controller) fillManagedResources(ec echo.Context, xr *uxres.Unstructured) error {
 	xrds, err := c.cachedListXRDs(ec)
 	if err != nil {

@@ -50,26 +50,26 @@ export type K8sResource = {
     status?: Status
 }
 
-export type SkyClusterResource = K8sResource & {
-    spec?: {
-        vservicecosts?: {
-            providerReference: {
-                name: string
-                region: string
-                type: string
-            }
-        }[]
-        vserviceCompositions?: {
-            apiVersion: string
-            kind: string
-        }[]
-    }
-    status?: {
-        // For ILP Task
-        result?: string
-        solution?: string
-    }
-}
+// export type SkyClusterResource = K8sResource & {
+//     spec?: {
+//         vservicecosts?: {
+//             providerReference: {
+//                 name: string
+//                 region: string
+//                 type: string
+//             }
+//         }[]
+//         vserviceCompositions?: {
+//             apiVersion: string
+//             kind: string
+//         }[]
+//     }
+//     status?: {
+//         // For ILP Task
+//         result?: string
+//         solution?: string
+//     }
+// }
 
 export type CM = K8sResource & {
     data: { [key: string]: string }
@@ -187,3 +187,5 @@ export type XRD = K8sResource & {
     }
     status: Status
 }
+
+export type SkyClusterResource = K8sResource 

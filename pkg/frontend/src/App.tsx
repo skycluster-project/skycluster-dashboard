@@ -20,6 +20,7 @@ import MainMenu from "./components/MainMenu.tsx";
 import CRDsPage from './pages/CRDsPage.tsx';
 import CRsPage from './pages/CRsPage.tsx';
 import CMsPage from './pages/CMsPage.tsx';
+import SkyClusterResourcesPage from "./pages/SkyClusterResourcesPage.tsx";
 
 const drawerWidth = 260;
 
@@ -37,6 +38,7 @@ export default function App() {
     const XRDs = <XRDsPage/>
     const compositions = <CompositionsPage/>
     const composite = <CompositeResourcesPage/>
+    const skycluster = <SkyClusterResourcesPage/>
     const managed = <ManagedResourcesPage/>
 
     return (
@@ -89,6 +91,8 @@ export default function App() {
                             <Route path="/remote/:group/:version/:kind/:namespace/:name/:deployName" element={<AppPage/>}/>
                             <Route path="/managed" element={managed}/>
                             <Route path="/managed/:group/:version/:kind/:name" element={managed}/>
+                            <Route path="/skycluster" element={skycluster}/>
+                            <Route path="/skycluster/:group/:version/:kind/:name" element={skycluster}/>
                             <Route path="/composite" element={composite}/>
                             <Route path="/composite/:group/:version/:kind/:name" element={composite}/>
                             <Route path="/compositions" element={compositions}/>
