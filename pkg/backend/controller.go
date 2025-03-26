@@ -792,7 +792,16 @@ func (c *Controller) GetSkyClusterResources(ec echo.Context) error {
 	gvr := []schema.GroupVersionResource{
 		{Group: "svc.skycluster.io",
 			Version:  "v1alpha1",
+			Resource: "skyproviders",
+		},
+		{Group: "svc.skycluster.io",
+			Version:  "v1alpha1",
 			Resource: "skyapps",
+		},
+		{
+			Group:    "core.skycluster.io",
+			Version:  "v1alpha1",
+			Resource: "skyclusters",
 		},
 		{
 			Group:    "core.skycluster.io",

@@ -1,5 +1,7 @@
 import SyntaxHighlighter from 'react-syntax-highlighter';
-import {lightfair as theme} from 'react-syntax-highlighter/dist/esm/styles/hljs';
+// import {lightfair as theme} from 'react-syntax-highlighter/dist/esm/styles/hljs';
+// import {monoBlue as theme} from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import {atomOneDark as theme} from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import YAML from 'yaml'
 import {K8sResource} from "../types.ts";
 import Box from "@mui/material/Box";

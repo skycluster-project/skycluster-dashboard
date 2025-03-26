@@ -75,13 +75,13 @@ function ListItem({item: initialItem, onItemClick}: ItemProps) {
                             icon={isLoading ? <CircularProgress size={20} /> : <RefreshIcon />} size="small" variant="outlined" color="warning" onClick={() => refreshData()}  />
                         <Chip sx={{ p: 0, mt: 0.5, ml: 1, '& > *': {ml: '8px !important', mr: '-8px !important',}, }}
                             icon={<InfoIcon />} size="small" variant="outlined" color="primary"
-                            onClick={() => copyToClipboard("kubectl get " + item.kind + " " + item.metadata.name)} />
+                            onClick={() => copyToClipboard("kubectl get " + item.kind + "." + item.apiVersion.split("/")[0] + " " + item.metadata.name)} />
                         <Chip sx={{ p: 0, mt: 0.5, ml: 1, '& > *': {ml: '8px !important', mr: '-8px !important',}, }}
                             icon={<HelpOutlineIcon />} size="small" variant="outlined" color="secondary"
-                            onClick={() => copyToClipboard("kubectl describe " + item.kind + " " + item.metadata.name)} />
+                            onClick={() => copyToClipboard("kubectl describe " + item.kind + "." + item.apiVersion.split("/")[0] + " " + item.metadata.name)} />
                         <Chip sx={{ p: 0, mt: 0.5, ml: 1, '& > *': {ml: '8px !important', mr: '-8px !important',}, }}
                             icon={<DeleteForeverIcon />} size="small" variant="outlined" color="error"
-                            onClick={() => copyToClipboard("kubectl delete " + item.kind + " " + item.metadata.name)} />
+                            onClick={() => copyToClipboard("kubectl delete " + item.kind + "." + item.apiVersion.split("/")[0] + " " + item.metadata.name)} />
                     </Box>
                     <Typography variant="body1">Kind: {item.kind}</Typography>
                     <Typography variant="body1">Group: {item.apiVersion}</Typography>
