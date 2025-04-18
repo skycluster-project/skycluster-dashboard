@@ -24,19 +24,21 @@ const copyToClipboard = (name: string) => {
 };
 
 function CMListItem({item, onItemClick}: CMListItemProps) {
-    const itemConfigType = item.metadata.labels?.["skycluster.io/config-type"];
-    const providerName = item.metadata.labels?.["skycluster.io/provider-name"];
+    // const itemConfigType = item.metadata.labels?.["skycluster.io/config-type"];
+    // const providerName = item.metadata.labels?.["skycluster.io/provider-name"];
     const providerType = item.metadata.labels?.["skycluster.io/provider-type"];
     const providerRegion = item.metadata.labels?.["skycluster.io/provider-region"];
     const providerRegionAlias = item.metadata.labels?.["skycluster.io/provider-region-alias"];
     const providerZone = item.metadata.labels?.["skycluster.io/provider-zone"];
     const providerLocName = item.metadata.labels?.["skycluster.io/provider-loc-name"];
+    const itemEnabled = item.data?.["enabled"] ?? "false";
     let pLocName = providerLocName? "\n" + providerLocName : "";
+
     return (
             <Box onClick={() => {onItemClick(item)}} className="m-1" 
                 sx={{ cursor: 'pointer', padding: '0.005rem' }}>
                 <Tooltip title={providerZone + ', ' + pLocName}>
-                <Chip variant="ghost" color={getColorFromLabel(providerRegionAlias)} className="m-0" size="sm" 
+                <Chip variant="ghost" color={getColorFromLabel(itemEnabled, providerRegionAlias)} className="m-0" size="sm" 
                     value={`${providerRegion} (${providerType})`} />
                 </Tooltip>
             </Box>
@@ -95,6 +97,14 @@ export default function CMList({items}: CMListProps) {
     // e.g. { "provider-mappings-aws": [CM1, CM2], "optimizer": [CM3, CM4] }
     const groupedCMs: { [itemIndex: string]: CM[] } = {};
 
+    type ProviderRegion = {
+        name: string
+        locName: string
+        regionAlias?: string
+        region?: string
+        enabled?: string
+    }
+
     type ProviderData = {
         identifier: string
         name: string
@@ -103,10 +113,41 @@ export default function CMList({items}: CMListProps) {
         region?: string
         zone?: string
         type?: string
+        enabled?: string
     }
+
+    const providerRegions: { [id: string]: ProviderRegion } = {};
     const providers: { [providerName: string]: ProviderData[] } = {};
     const providerNames: { [providerName: string]: string[] } = {};
     let defaultProviderCount = 0;
+
+    // Get the default provider regions data and their enabled status
+    items.items.forEach((item) => {
+        const pConfigType = "skycluster.io/config-type"
+        const pNameSelector = "skycluster.io/provider-name"
+        const pLocNameSelector = "skycluster.io/provider-loc-name"
+        const pRegionSelector = "skycluster.io/provider-region"
+        const pTypeSelector = "skycluster.io/provider-type"
+        const itemEnabled = item.data?.["enabled"] ?? "false";
+        const pRegionAliasSelector = "skycluster.io/provider-region-alias"
+        let configType = item.metadata?.labels?.[pConfigType] ?? 'NoType';
+        let providerType = item.metadata?.labels?.[pTypeSelector];
+        let providerName = item.metadata?.labels?.[pNameSelector] ?? "";
+        let providerRegion = item.metadata?.labels?.[pRegionSelector];
+        let providerRegionAlias = item.metadata?.labels?.[pRegionAliasSelector];
+        let providerLocName = item.metadata?.labels?.[pLocNameSelector] ?? "";
+        let providerId = providerName + providerRegion
+        
+        if (configType == "provider-mappings" && providerType == "global") {
+            providerRegions[providerId] = {
+                name: providerName,
+                locName: providerLocName,
+                regionAlias: providerRegionAlias,
+                region: providerRegion,
+                enabled: itemEnabled,
+            }        
+        }
+    });
 
     
     // Prepare the variables
@@ -130,6 +171,12 @@ export default function CMList({items}: CMListProps) {
             const providerType = item.metadata?.labels?.[pTypeSelector];
             const providerZone = item.metadata?.labels?.[pZoneSelector];
             const providerRegionAlias = item.metadata?.labels?.[pRegionAliasSelector];
+            
+            const regionalItemEnabled = providerRegions[providerName + providerRegion].enabled
+            if (regionalItemEnabled == "false") {
+                // set the data.enabled to false
+                item.data["enabled"] = "false"
+            }
 
             // Construct the configs for this provider (e.g. provider-mappings-aws)
             if (providerName != "") {
@@ -155,6 +202,7 @@ export default function CMList({items}: CMListProps) {
                     regionAlias: providerRegionAlias,
                     zone: providerZone,
                     type: providerType,
+                    enabled: item.data["enabled"],
                 });
             }
 
@@ -225,6 +273,9 @@ export default function CMList({items}: CMListProps) {
                             <Typography variant="h6">Color Guide:</Typography>
                             </Box>
                             <Stack direction="row"> 
+                                <Box className="p-1">
+                                <Typography className="px-1" variant="caption" sx={{borderLeft: 'solid 0.75rem gray', borderTopLeftRadius: '0.375rem', borderBottomLeftRadius: '0.375rem' }}>Disabled</Typography>
+                                </Box>
                                 <Box className="p-1">
                                 <Typography className="px-1" variant="caption" sx={{borderLeft: 'solid 0.75rem rgba(3, 169, 244, 0.8)', borderTopLeftRadius: '0.375rem', borderBottomLeftRadius: '0.375rem' }}>Cloud</Typography>
                                 </Box>

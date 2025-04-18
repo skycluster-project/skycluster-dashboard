@@ -54,10 +54,12 @@ export function sendStatsToHeap(name: string, prop: object) {
 // The function returns a color based on the labels
 // If the second label is not provided, it will be ignored
 // Otherwise, a hash of concatenated labels will be used to determine the color
-export function getColorFromLabel(first_label: string | undefined, second_label?: string | undefined): colors | undefined {
+export function getColorFromLabel(enabled: string, first_label: string | undefined, second_label?: string | undefined): colors | undefined {
     const colors: colors[] = ["purple", "lime", "blue-gray", "gray", "light-blue", "brown", "deep-orange", "orange", "amber", "yellow", "light-green", "green", 
         "teal", "cyan", "blue", "indigo", "deep-purple", "pink", "red"];
     if (!first_label || typeof first_label !== 'string') return undefined;
+
+    if (enabled === "false") return "gray";
   
     const label = second_label ? first_label.substring(0, 3) + second_label : first_label.substring(0, 3);
 
@@ -69,10 +71,10 @@ export function getColorFromLabel(first_label: string | undefined, second_label?
     for (let i = 0; i < key.length; i++) {
       hash += key.charCodeAt(i);
     }
-  
+    
     // Map the hash to an index in the colors 
     // There are 19 colors currently
     const index = hash % colors.length;
-  
+    
     return colors[index];
   }
