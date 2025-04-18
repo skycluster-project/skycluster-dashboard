@@ -11,6 +11,7 @@ import ProvidersIcon from "@mui/icons-material/GridViewTwoTone";
 import Divider from "@mui/material/Divider";
 import CompositionsIcon from "@mui/icons-material/AccountTreeTwoTone";
 import XRDsIcon from "@mui/icons-material/SchemaTwoTone";
+import { Typography } from "@mui/material";
 
 export default function MainMenu() {
     const location = useLocation();
@@ -33,9 +34,33 @@ export default function MainMenu() {
             <ListItem key="Claims" disablePadding>
                 <ListItemButton component={RouterLink} to="/claims" sx={styleHighLight("/claims")}>
                     <ListItemIcon>
-                        <ClaimsIcon/>
+                        <XRDsIcon/>
                     </ListItemIcon>
-                    <ListItemText primary="Claims"/>
+                    <ListItemText primary="SkyCluster Services"/>
+                </ListItemButton>
+            </ListItem>
+            <ListItem key="CMs" disablePadding>
+                <ListItemButton component={RouterLink} to="/cms" sx={styleHighLight("/cms")}>
+                    <ListItemIcon>
+                        <ProvidersIcon/>
+                    </ListItemIcon>
+                    <ListItemText primary="SkyCluster Configs"/>
+                </ListItemButton>
+            </ListItem>
+            <ListItem key="CRDs" disablePadding>
+                <ListItemButton component={RouterLink} to="/crds" sx={styleHighLight("/crds")}>
+                    <ListItemIcon>
+                        <XRDsIcon/>
+                    </ListItemIcon>
+                    <ListItemText primary="SkyCluster CRD"/>
+                </ListItemButton>
+            </ListItem>
+            <ListItem key="SkyCluster Resources" disablePadding>
+                <ListItemButton component={RouterLink} to="/skycluster" sx={styleHighLight("/skycluster")}>
+                    <ListItemIcon>
+                        <CompositeIcon/>
+                    </ListItemIcon>
+                    <ListItemText primary="SkyCluster Resources"/>
                 </ListItemButton>
             </ListItem>
             <ListItem key="Composite Resources" disablePadding>
@@ -52,14 +77,6 @@ export default function MainMenu() {
                         <ManagedIcon/>
                     </ListItemIcon>
                     <ListItemText primary="Managed Resources"/>
-                </ListItemButton>
-            </ListItem>
-            <ListItem key="Providers" disablePadding>
-                <ListItemButton component={RouterLink} to="/providers" sx={styleHighLight("/providers")}>
-                    <ListItemIcon>
-                        <ProvidersIcon/>
-                    </ListItemIcon>
-                    <ListItemText primary="Providers"/>
                 </ListItemButton>
             </ListItem>
         </List>

@@ -26,6 +26,8 @@ import (
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/apimachinery/pkg/runtime/schema"
+	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 	_ "k8s.io/client-go/plugin/pkg/client/auth/oidc"
 	"k8s.io/client-go/rest"
 	"k8s.io/client-go/tools/clientcmd"
@@ -39,15 +41,18 @@ type StatusInfo struct {
 }
 
 type Controller struct {
-	StatusInfo StatusInfo
-	APIv1      crossplane.APIv1
-	ExtV1      crossplane.ExtensionsV1
-	Events     crossplane.EventsInterface
-	CRDs       crossplane.CRDInterface
-	ctx        context.Context
-	apiExt     *apiextensionsv1.ApiextensionsV1Client
-	mrdCache   *ttlcache.Cache[bool, []*v1.CustomResourceDefinition] // TODO: extract this into separate entity
-	mrCache    *ttlcache.Cache[bool, *unstructured.UnstructuredList]
+	StatusInfo    StatusInfo
+	APIv1         crossplane.APIv1
+	ExtV1         crossplane.ExtensionsV1
+	Events        crossplane.EventsInterface
+	CRDs          crossplane.CRDInterface
+	ctx           context.Context
+	apiExt        *apiextensionsv1.ApiextensionsV1Client
+	clientset     *kubernetes.Clientset
+	dynamicClient dynamic.Interface
+	crdCashe      *ttlcache.Cache[bool, *v1.CustomResourceDefinitionList]
+	mrdCache      *ttlcache.Cache[bool, []*v1.CustomResourceDefinition] // TODO: extract this into separate entity
+	mrCache       *ttlcache.Cache[bool, *unstructured.UnstructuredList]
 }
 
 type ConditionedObject interface {
@@ -64,6 +69,16 @@ type UnstructuredWithCompositionRef interface {
 type ManagedUnstructured struct { // no dedicated type for it in base CP, just resource.Managed interface
 	uxres.Unstructured
 }
+
+var (
+	// TODO: this is manually hardcoded, should be generated from the CRD
+	SkyClusterAPI            = "skycluster.io"
+	SkyClusterCoreGroup      = "core." + SkyClusterAPI
+	SkyClusterVersion        = "v1alpha1"
+	SkyClusterManagedBy      = SkyClusterAPI + "/managed-by"
+	SkyClusterManagedByValue = "skycluster"
+	SkyClusterConfigType     = SkyClusterAPI + "/config-type"
+)
 
 type CRDMap = map[string][]*v1.CustomResourceDefinition
 
@@ -110,6 +125,182 @@ func (c *Controller) GetStatus() StatusInfo {
 	c.StatusInfo.CrossplaneInstalled = crd != nil && err == nil
 
 	return c.StatusInfo
+}
+
+// Author: Ehsan Etesami
+func (c *Controller) GetCMs(ec echo.Context) error {
+	// Instead, we can filter using labels to take
+	// advantage of the filtersing capabilities of the API server
+	configMaps, err := c.clientset.CoreV1().ConfigMaps("").List(c.ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+
+	// Filter configmaps based on the owner reference API version
+	// SkyClusterAPIVersion := SkyClusterCoreGroup + "/" + SkyClusterVersion
+	// Filter based on the labels, should contain the managed-by label
+	filteredConfigMaps := &v12.ConfigMapList{Items: []v12.ConfigMap{}}
+	for _, configMap := range configMaps.Items {
+		if v, e := configMap.Labels[SkyClusterManagedBy]; e && v == SkyClusterManagedByValue {
+			filteredConfigMaps.Items = append(filteredConfigMaps.Items, configMap)
+		}
+		// for _, ownerReference := range configMap.OwnerReferences {
+		// 	if ownerReference.APIVersion == SkyClusterAPIVersion {
+		// 		filteredConfigMaps.Items = append(filteredConfigMaps.Items, configMap)
+		// 	}
+		// }
+	}
+
+	return ec.JSONPretty(http.StatusOK, filteredConfigMaps, "  ")
+}
+
+// Author: Ehsan Etesami
+func (c *Controller) GetCRDs(ec echo.Context) error {
+	// Filter CRDs by the specific group
+
+	filteredCRDs := &v1.CustomResourceDefinitionList{
+		ListMeta: metav1.ListMeta{},
+	}
+
+	// ResourceVersion: crds.ResourceVersion,
+	cacheItem := c.crdCashe.Get(true)
+	if cacheItem == nil {
+		crds, err := c.apiExt.CustomResourceDefinitions().List(c.ctx, metav1.ListOptions{})
+		if err != nil {
+			return err
+		}
+
+		filteredCRDs.ResourceVersion = crds.ResourceVersion
+		for _, crd := range crds.Items {
+			if crd.Spec.Group == SkyClusterCoreGroup {
+				filteredCRDs.Items = append(filteredCRDs.Items, crd)
+			}
+		}
+		c.crdCashe.Set(true, filteredCRDs, ttlcache.DefaultTTL)
+	} else {
+		filteredCRDs = cacheItem.Value()
+	}
+
+	return ec.JSONPretty(http.StatusOK, filteredCRDs, "  ")
+}
+
+// Author: Ehsan Etesami
+func (c *Controller) GetCRD(ec echo.Context) error {
+	res, err := c.apiExt.CustomResourceDefinitions().Get(c.ctx, ec.Param("name"), metav1.GetOptions{})
+	if err != nil {
+		return err
+	}
+
+	return ec.JSONPretty(http.StatusOK, res, "  ")
+}
+
+// Author: Ehsan Etesami
+func (c *Controller) GetCustomResources(ec echo.Context) error {
+	gvr := schema.GroupVersionResource{
+		Group:    ec.Param("group"),
+		Version:  ec.Param("version"),
+		Resource: ec.Param("resource"),
+	}
+
+	res := unstructured.UnstructuredList{Items: []unstructured.Unstructured{}}
+	list, err := c.dynamicClient.Resource(gvr).Namespace("").List(c.ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	res.Items = append(res.Items, list.Items...)
+
+	return ec.JSONPretty(http.StatusOK, res, "  ")
+}
+
+// Author: Ehsan Etesami
+func (c *Controller) GetRemoteResources(ec echo.Context) error {
+
+	gvk := schema.GroupVersionKind{
+		Group:   ec.Param("group"),
+		Version: ec.Param("version"),
+		Kind:    ec.Param("kind"),
+	}
+
+	claimRef := v12.ObjectReference{Namespace: ec.Param("namespace"), Name: ec.Param("name")}
+	claimRef.SetGroupVersionKind(gvk)
+
+	claim := uclaim.New()
+	err := c.getDynamicResource(&claimRef, claim)
+	if err != nil {
+		return err
+	}
+
+	if s, ok := claim.Object["status"].(map[string]interface{}); ok {
+		if k3s, ok := s["k3s"].(map[string]interface{}); ok {
+			if cfg, ok := k3s["kubeconfig"].(string); ok {
+				config, err := clientcmd.RESTConfigFromKubeConfig([]byte(cfg))
+				if err != nil {
+					return err
+				}
+
+				// Create a clientset for the remote cluster
+				remoteClientset, err := kubernetes.NewForConfig(config)
+				if err != nil {
+					return err
+				}
+				deploymentsClient := remoteClientset.AppsV1().Deployments(metav1.NamespaceDefault)
+				deployments, err := deploymentsClient.List(context.TODO(), metav1.ListOptions{})
+				if err != nil {
+					return err
+				}
+				return ec.JSONPretty(http.StatusOK, deployments, "  ")
+			}
+			return errors.New("kubeconfig not found")
+		}
+		return errors.New("k3s not found")
+	}
+	return errors.New("status not found")
+}
+
+// Author: Ehsan Etesami
+func (c *Controller) GetRemoteResource(ec echo.Context) error {
+
+	gvk := schema.GroupVersionKind{
+		Group:   ec.Param("group"),
+		Version: ec.Param("version"),
+		Kind:    ec.Param("kind"),
+	}
+
+	claimRef := v12.ObjectReference{Namespace: ec.Param("namespace"), Name: ec.Param("name")}
+	claimRef.SetGroupVersionKind(gvk)
+
+	claim := uclaim.New()
+	err := c.getDynamicResource(&claimRef, claim)
+	if err != nil {
+		return err
+	}
+
+	if s, ok := claim.Object["status"].(map[string]interface{}); ok {
+		if k3s, ok := s["k3s"].(map[string]interface{}); ok {
+			if cfg, ok := k3s["kubeconfig"].(string); ok {
+				config, err := clientcmd.RESTConfigFromKubeConfig([]byte(cfg))
+				if err != nil {
+					return err
+				}
+
+				// Create a clientset for the remote cluster
+				remoteClientset, err := kubernetes.NewForConfig(config)
+				if err != nil {
+					return err
+				}
+				// get specific deploymeny given the name
+				deploymentsClient := remoteClientset.AppsV1().Deployments(metav1.NamespaceDefault)
+				deployment, err := deploymentsClient.Get(context.TODO(), ec.Param("deployName"), metav1.GetOptions{})
+				if err != nil {
+					return err
+				}
+				return ec.JSONPretty(http.StatusOK, deployment, "  ")
+			}
+			return errors.New("kubeconfig not found")
+		}
+		return errors.New("k3s not found")
+	}
+	return errors.New("status not found")
 }
 
 func (c *Controller) GetProviders(ec echo.Context) error {
@@ -269,18 +460,19 @@ func (c *Controller) GetClaim(ec echo.Context) error {
 	}
 
 	if ec.QueryParam("full") != "" {
-		xrRef := claim.GetResourceReference()
+		if xrRef := claim.GetResourceReference(); xrRef != nil {
 
-		xr := uxres.New()
-		_ = c.getDynamicResource(xrRef, xr)
-		claim.Object["compositeResource"] = xr
+			xr := uxres.New()
+			_ = c.getDynamicResource(xrRef, xr)
+			claim.Object["compositeResource"] = xr
 
-		err := c.fillManagedResources(ec, xr)
-		if err != nil {
-			return err
+			err := c.fillManagedResources(ec, xr)
+			if err != nil {
+				return err
+			}
+
+			c.fillCompositionByRef(claim)
 		}
-
-		c.fillCompositionByRef(claim)
 	}
 	return ec.JSONPretty(http.StatusOK, claim.Object, "  ")
 }
@@ -396,6 +588,38 @@ func (c *Controller) allMRDs(provCRDs CRDMap) []*v1.CustomResourceDefinition {
 	}
 
 	return res
+}
+
+func (c *Controller) GetManagedsNoCaching(ec echo.Context) error {
+	// return all MRDs without caching
+	res := &unstructured.UnstructuredList{Items: []unstructured.Unstructured{}}
+	var MRDs []*v1.CustomResourceDefinition
+
+	provCRDs, err := c.LoadCRDs(ec)
+	if err != nil {
+		return err
+	}
+
+	MRDs = c.allMRDs(provCRDs)
+	if err != nil {
+		return err
+	}
+
+	for _, mrd := range MRDs {
+		gvk := schema.GroupVersionKind{
+			Group:   mrd.Spec.Group,
+			Version: mrd.Spec.Versions[0].Name,
+			Kind:    mrd.Spec.Names.Plural,
+		}
+		items, err := c.CRDs.List(c.ctx, gvk)
+		if err != nil {
+			log.Warnf("Failed to list CRD: %v: %v", mrd.GroupVersionKind(), err)
+			continue
+		}
+		res.Items = append(res.Items, items.Items...)
+	}
+
+	return ec.JSONPretty(http.StatusOK, res, "  ")
 }
 
 func (c *Controller) GetManaged(ec echo.Context) error {
@@ -562,6 +786,77 @@ func (c *Controller) GetComposite(ec echo.Context) error {
 	return ec.JSONPretty(http.StatusOK, xr, "  ")
 }
 
+func (c *Controller) GetSkyClusterResources(ec echo.Context) error {
+	res := unstructured.UnstructuredList{Items: []unstructured.Unstructured{}}
+
+	gvr := []schema.GroupVersionResource{
+		{Group: "svc.skycluster.io",
+			Version:  "v1alpha1",
+			Resource: "skyproviders",
+		},
+		{Group: "svc.skycluster.io",
+			Version:  "v1alpha1",
+			Resource: "skyapps",
+		},
+		{
+			Group:    "core.skycluster.io",
+			Version:  "v1alpha1",
+			Resource: "skyclusters",
+		},
+		{
+			Group:    "core.skycluster.io",
+			Version:  "v1alpha1",
+			Resource: "skyxrds",
+		},
+		{
+			Group:    "core.skycluster.io",
+			Version:  "v1alpha1",
+			Resource: "ilptasks",
+		},
+		{
+			Group:    "policy.skycluster.io",
+			Version:  "v1alpha1",
+			Resource: "dataflowpolicies",
+		},
+		{
+			Group:    "policy.skycluster.io",
+			Version:  "v1alpha1",
+			Resource: "deploymentpolicies",
+		},
+	}
+	for _, thisGvr := range gvr {
+		list, err := c.dynamicClient.Resource(thisGvr).Namespace("").List(c.ctx, metav1.ListOptions{})
+		if err != nil {
+			return err
+		}
+		res.Items = append(res.Items, list.Items...)
+	}
+
+	return ec.JSONPretty(http.StatusOK, res, "  ")
+}
+
+func (c *Controller) GetSkyClusterResource(ec echo.Context) error {
+	res := unstructured.UnstructuredList{Items: []unstructured.Unstructured{}}
+
+	gvk := schema.GroupVersionKind{
+		Group:   ec.Param("group"),
+		Version: ec.Param("version"),
+		Kind:    ec.Param("kind"),
+	}
+	list, err := c.dynamicClient.Resource(
+		schema.GroupVersionResource{
+			Group:    gvk.Group,
+			Version:  gvk.Version,
+			Resource: utils.Plural(gvk.Kind),
+		}).Namespace("").List(c.ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	res.Items = append(res.Items, list.Items...)
+
+	return ec.JSONPretty(http.StatusOK, res, "  ")
+}
+
 func (c *Controller) fillManagedResources(ec echo.Context, xr *uxres.Unstructured) error {
 	xrds, err := c.cachedListXRDs(ec)
 	if err != nil {
@@ -577,6 +872,9 @@ func (c *Controller) fillManagedResources(ec echo.Context, xr *uxres.Unstructure
 		if err != nil {
 			log.Debugf("Did not find dynamic resource %v", mrRef)
 		}
+
+		// recursively fill the MRs
+		c.fillManagedResources(ec, &mr.Unstructured)
 
 		if mr.GetName() != "" { // skip those not found
 			nameMatched, claimNameMatched := c.matchXR(xrds, &mrRef)
@@ -697,20 +995,30 @@ func NewController(ctx context.Context, cfg *rest.Config, ns string, version str
 		return nil, err
 	}
 
+	dynamicClient, err := dynamic.NewForConfig(cfg)
+	clientset, err := kubernetes.NewForConfig(cfg)
+
+	crdCacheTTL := durationFromEnv("KP_MRD_CACHE_TTL", 5*time.Minute)
 	mrdCacheTTL := durationFromEnv("KP_MRD_CACHE_TTL", 5*time.Minute)
 	mrCacheTTL := durationFromEnv("KP_MR_CACHE_TTL", 1*time.Minute)
 
 	controller := Controller{
-		ctx:    ctx,
-		APIv1:  apiV1,
-		ExtV1:  ext,
-		Events: evt,
-		apiExt: apiExt,
-		CRDs:   crossplane.NewCRDsClient(cfg, ext),
+		ctx:           ctx,
+		APIv1:         apiV1,
+		ExtV1:         ext,
+		Events:        evt,
+		apiExt:        apiExt,
+		clientset:     clientset,
+		dynamicClient: dynamicClient,
+		CRDs:          crossplane.NewCRDsClient(cfg, ext),
 		StatusInfo: StatusInfo{
 			CurVer: version,
 		},
 
+		crdCashe: ttlcache.New(
+			ttlcache.WithTTL[bool, *v1.CustomResourceDefinitionList](crdCacheTTL),
+			ttlcache.WithDisableTouchOnHit[bool, *v1.CustomResourceDefinitionList](),
+		),
 		mrdCache: ttlcache.New(
 			ttlcache.WithTTL[bool, []*v1.CustomResourceDefinition](mrdCacheTTL),
 			ttlcache.WithDisableTouchOnHit[bool, []*v1.CustomResourceDefinition](),
@@ -721,6 +1029,7 @@ func NewController(ctx context.Context, cfg *rest.Config, ns string, version str
 		),
 	}
 
+	go controller.crdCashe.Start() // starts automatic expired item deletion
 	go controller.mrdCache.Start() // starts automatic expired item deletion
 	go controller.mrCache.Start()  // starts automatic expired item deletion
 

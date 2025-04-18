@@ -14,6 +14,7 @@ export type Metadata = {
     name: string
     namespace?: string
     annotations?: { [key: string]: string; }
+    labels?: { [key: string]: string; }
 }
 
 export type Condition = {
@@ -41,11 +42,53 @@ export type TypeReference = {
 
 export type K8sReference = Reference & TypeReference
 
+
 export type K8sResource = {
     kind: string
     apiVersion: string
     metadata: Metadata,
     status?: Status
+}
+
+// export type SkyClusterResource = K8sResource & {
+//     spec?: {
+//         vservicecosts?: {
+//             providerReference: {
+//                 name: string
+//                 region: string
+//                 type: string
+//             }
+//         }[]
+//         vserviceCompositions?: {
+//             apiVersion: string
+//             kind: string
+//         }[]
+//     }
+//     status?: {
+//         // For ILP Task
+//         result?: string
+//         solution?: string
+//     }
+// }
+
+export type CM = K8sResource & {
+    data: { [key: string]: string }
+}
+
+export type CRD = K8sResource & {
+    spec: {
+        group: string
+        names: {
+            kind: string
+            plural: string
+        }
+        versions: {
+            name: string
+            served?: boolean
+        }[]
+        resourceRefs: Reference[]
+    }
+    status: Status
 }
 
 export type Provider = K8sResource & {
@@ -78,7 +121,7 @@ export type Claim = K8sResource & {
 
 export type ClaimExtended = Claim & {
     managedResources: ManagedResource[]
-    compositeResource: CompositeResource
+    compositeResource: CompositeResourceExtended
     composition: Composition
 }
 
@@ -90,6 +133,7 @@ export type ManagedResource = K8sResource & {
 }
 
 export type ManagedResourceExtended = ManagedResource & {
+    managedResources: ManagedResourceExtended[]
     composite?: CompositeResource
     provConfig?: ProviderConfig
 }
@@ -104,7 +148,7 @@ export type CompositeResource = K8sResource & {
 }
 
 export type CompositeResourceExtended = CompositeResource & {
-    managedResources: ManagedResource[]
+    managedResources: ManagedResourceExtended[]
     managedResourcesXRs: K8sReference[]
     managedResourcesClaims: K8sReference[]
     composition: Composition
@@ -143,3 +187,5 @@ export type XRD = K8sResource & {
     }
     status: Status
 }
+
+export type SkyClusterResource = K8sResource 

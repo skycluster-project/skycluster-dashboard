@@ -11,7 +11,11 @@ import {
     ManagedResourceExtended,
     Provider,
     ProviderConfig,
-    XRD
+    XRD,
+    CRD,
+    CM,
+    K8sResource,
+    SkyClusterResource
 } from "./types.ts";
 import {sendStatsToHeap} from "./utils.ts";
 
@@ -27,6 +31,32 @@ class APIClient {
             throw new Error(`Failed to fetch data from API. Status code: ${response.status}`);
         }
         return response
+    };
+
+    getCMsList = async () => {
+        const response = await this.innterFetch(`/api/cms`);
+        const data: ItemList<CM> = await response.json();
+        sendStatsToHeap('List CMs', {count: data.items.length});
+        return data;
+    };
+
+    getCRDsList = async () => {
+        const response = await this.innterFetch(`/api/crds`);
+        const data: ItemList<CRD> = await response.json();
+        sendStatsToHeap('List CRDs', {count: data.items.length});
+        return data;
+    };
+    
+    getCRD = async (name: string) => {
+        const response = await this.innterFetch(`/api/crds/${name}`);
+        const data: CRD = await response.json();
+        return data;
+    }
+
+    getCustomResources = async (group: string, version: string, name: string) => {
+        const response = await this.innterFetch(`/api/crs/${group}/${version}/${name}`);
+        const data: ItemList<K8sResource> = await response.json();
+        return data;
     };
 
     getProviderList = async () => {
@@ -46,6 +76,18 @@ class APIClient {
     getEvents = async (path: string) => {
         const response = await this.innterFetch(`/api/events/${path}`);
         const data: ItemList<K8sEvent> = await response.json();
+        return data;
+    };
+    
+    getRemoteResource = async (group?: string, version?: string, kind?: string, namespace?: string, name?: string, deployName?: string) => {
+        const response = await this.innterFetch(`/api/remote/`+ group + "/" + version + "/" + kind + "/" + namespace + "/" + name + "/" + deployName);
+        const data: K8sResource = await response.json();
+        return data;
+    };
+
+    getRemoteResources = async (group?: string, version?: string, kind?: string, namespace?: string, name?: string) => {
+        const response = await this.innterFetch(`/api/remote/`+ group + "/" + version + "/" + kind + "/" + namespace + "/" + name);
+        const data: ItemList<K8sResource> = await response.json();
         return data;
     };
 
@@ -78,6 +120,19 @@ class APIClient {
     getManagedResource = async (group?: string, version?: string, kind?: string, name?: string) => {
         const response = await this.innterFetch(`/api/managed/` + group + "/" + version + "/" + kind + "/" + name + "?full=1");
         const data: ManagedResourceExtended = await response.json();
+        return data;
+    };
+
+    getSkyClusterResourcesList = async () => {
+        const response = await this.innterFetch(`/api/skycluster`);
+        const data: ItemList<SkyClusterResource> = await response.json();
+        sendStatsToHeap('List XRs', {count: data.items.length});
+        return data;
+    };
+
+    getSkyClusterResource = async (group?: string, version?: string, kind?: string, name?: string) => {
+        const response = await this.innterFetch(`/api/SkyCluster/` + group + "/" + version + "/" + kind + "/" + name + "?full=1");
+        const data: SkyClusterResource = await response.json();
         return data;
     };
 

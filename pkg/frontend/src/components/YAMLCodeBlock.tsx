@@ -1,5 +1,7 @@
 import SyntaxHighlighter from 'react-syntax-highlighter';
-import {lightfair as theme} from 'react-syntax-highlighter/dist/esm/styles/hljs';
+// import {lightfair as theme} from 'react-syntax-highlighter/dist/esm/styles/hljs';
+// import {monoBlue as theme} from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import {atomOneDark as theme} from 'react-syntax-highlighter/dist/esm/styles/hljs';
 import YAML from 'yaml'
 import {K8sResource} from "../types.ts";
 import Box from "@mui/material/Box";
@@ -16,8 +18,9 @@ const YAMLCodeBlock = ({obj}: { obj: K8sResource }) => {
 
     return (
         <Box className="border">
-            <SyntaxHighlighter language="yaml" style={theme} wrapLines={true} wrapLongLines={true}
-                               showLineNumbers={true} lineNumberStyle={{color: "silver"}}>
+            <SyntaxHighlighter language="yaml" style={theme} wrapLines={false} wrapLongLines={false}
+                               showLineNumbers={true} lineNumberStyle={{color: "silver"}}
+                               customStyle={{fontSize: '0.85em'}}>
                 {YAML.stringify(obj)}
             </SyntaxHighlighter>
         </Box>

@@ -1,13 +1,14 @@
 package backend
 
 import (
+	"net/http"
+	"os"
+	"time"
+
 	"github.com/komodorio/komoplane/pkg/frontend"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 	log "github.com/sirupsen/logrus"
-	"net/http"
-	"os"
-	"time"
 )
 
 func NewRouter(data *Controller, debug bool) *echo.Echo {
@@ -36,7 +37,12 @@ func NewRouter(data *Controller, debug bool) *echo.Echo {
 			return nil
 		},
 	}))
-
+	if os.Getenv("GO_ENV") == "dev" {
+		api.Use(middleware.CORSWithConfig(middleware.CORSConfig{
+			AllowOrigins: []string{"http://localhost:5173"},
+			AllowMethods: []string{echo.GET, echo.PUT, echo.POST, echo.DELETE},
+		}))
+	}
 	api.Use(errSet500)
 	api.Use(slowness)
 
@@ -96,6 +102,16 @@ func configureRoutes(data *Controller, eng *echo.Echo) {
 	api.GET("/events/:name", data.GetEvents)
 	api.GET("/events/:namespace/:name", data.GetEvents)
 
+	cms := api.Group("/cms")
+	cms.GET("", data.GetCMs)
+
+	crds := api.Group("/crds")
+	crds.GET("", data.GetCRDs)
+	crds.GET("/:name", data.GetCRD)
+
+	crs := api.Group("/crs")
+	crs.GET("/:group/:version/:resource", data.GetCustomResources)
+
 	rels := api.Group("/providers")
 	rels.GET("", data.GetProviders)
 	rels.GET("/:name", data.GetProvider)
@@ -107,12 +123,21 @@ func configureRoutes(data *Controller, eng *echo.Echo) {
 	claims.GET("/:group/:version/:kind/:namespace/:name", data.GetClaim)
 
 	managed := api.Group("/managed")
-	managed.GET("", data.GetManageds)
+	managed.GET("", data.GetManagedsNoCaching)
+	// managed.GET("", data.GetManageds)
 	managed.GET("/:group/:version/:kind/:name", data.GetManaged)
 
 	composite := api.Group("/composite")
 	composite.GET("", data.GetComposites)
 	composite.GET("/:group/:version/:kind/:name", data.GetComposite)
+
+	skycluster := api.Group("/skycluster")
+	skycluster.GET("", data.GetSkyClusterResources)
+	skycluster.GET("/:group/:version/:kind/:name", data.GetSkyClusterResource)
+
+	remoteResources := api.Group("/remote")
+	remoteResources.GET("/:group/:version/:kind/:namespace/:name", data.GetRemoteResources)
+	remoteResources.GET("/:group/:version/:kind/:namespace/:name/:deployName", data.GetRemoteResource)
 
 	compositions := api.Group("/compositions")
 	compositions.GET("", data.GetCompositions)

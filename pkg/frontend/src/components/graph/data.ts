@@ -25,7 +25,6 @@ export class GraphData {
     public addNode(ntype: NodeTypes, res: K8sResource, isMain: boolean, navigate: NavigateFunction): Node {
         const status = this.getStatus(res)
         const onClick = this.genOnClick(ntype, res, isMain, navigate)
-        logger.log("OnClick", onClick == NOOP)
         const compositionName = res?.metadata.annotations ? res.metadata.annotations["crossplane.io/composition-resource-name"] : null
         const node = {
             id: (++this.id).toString(),
@@ -37,6 +36,8 @@ export class GraphData {
                 compositionName: compositionName,
                 status: status[0],
                 statusMsg: status[1],
+                provider: res?.metadata.labels ? res.metadata.labels["skycluster.io/provider-name"] : null,
+                region: res?.metadata.labels ? res.metadata.labels["skycluster.io/provider-region"] : null,
                 main: isMain,
                 onClick: onClick == NOOP ? undefined : onClick,
             },
@@ -51,6 +52,7 @@ export class GraphData {
             id: (++this.id).toString(),
             source: src.id,
             target: tgt.id,
+            animated: true,
         };
 
         const marker: EdgeMarkerType = {type: MarkerType.ArrowClosed, width: 20, height: 20}
@@ -76,13 +78,12 @@ export class GraphData {
                 break;
         }
 
-        edge.markerStart = marker
+        edge.markerEnd = marker
 
         this.edges.push(edge)
     }
 
     private getStatus(res: K8sResource): [NodeStatus, string] {
-        logger.log("get status from", res)
         if (!res) {
             return [NodeStatus.NotFound, "Not Specified"]
         }
@@ -95,7 +96,6 @@ export class GraphData {
             }
         });
 
-        logger.log("status " + res.metadata.name, problems)
 
         if (problems["Found"]) {
             return [NodeStatus.NotFound, problems["Found"]]
@@ -140,4 +140,99 @@ export class GraphData {
             navigate(url)
         }
     }
+}
+
+export class GraphDataApplication {
+    private id = 0;
+    public nodes: Node[] = []
+    public edges: Edge[] = []
+
+    public addNode(res: K8sResource, addr: String, navigate: NavigateFunction): Node {
+        const status = this.getStatus(res)
+        const onClick = ()=> {
+            navigate(res.metadata.name, {state: {deploy: res}});
+        }
+        const node = {
+            id: (++this.id).toString(),
+            type: NodeTypes.Claim,
+            data: {
+                label: res?.metadata.name,
+                apiVersion: res?.apiVersion,
+                kind: res?.kind,
+                status: status[0],
+                statusMsg: status[1],
+                provider: res?.metadata.labels ? res.metadata.labels["skycluster.io/provider-name"] : null,
+                region: res?.metadata.labels ? res.metadata.labels["skycluster.io/provider-region"] : null,
+                main: false,
+                onClick: onClick == NOOP ? undefined : onClick,
+            },
+            position: {x: 0, y: 0},
+        };
+        this.nodes.push(node)
+        return node
+    }
+
+    addEdge(src: Node, tgt: Node): void {
+        const edge: Edge = {
+            id: (++this.id).toString(),
+            source: src.id,
+            target: tgt.id,
+            animated: true,
+        };
+
+        const marker: EdgeMarkerType = {type: MarkerType.ArrowClosed, width: 20, height: 20}
+
+        switch (src.data.status) {
+            case NodeStatus.NotFound:
+                edge.style = {stroke: 'maroon'}
+                marker.color = "maroon"
+                break
+            case NodeStatus.NotReady:
+                edge.style = {stroke: 'red'}
+                marker.color = "red"
+                break
+            case NodeStatus.Unhealthy:
+                edge.style = {stroke: 'red'}
+                marker.color = "red"
+                break
+            case NodeStatus.NotSynced:
+                edge.style = {stroke: 'orange'}
+                marker.color = "orange"
+                break
+            default:
+                break;
+        }
+
+        edge.markerEnd = marker
+
+        this.edges.push(edge)
+    }
+
+    private getStatus(res: K8sResource): [NodeStatus, string] {
+        if (!res) {
+            return [NodeStatus.NotFound, "Not Specified"]
+        }
+
+        const problems: { [key: string]: string } = {}
+
+        res.status?.conditions?.forEach((element) => {
+            if (element.status != "True") {
+                problems[element.type] = element.reason
+            }
+        });
+
+
+        if (problems["Found"]) {
+            return [NodeStatus.NotFound, problems["Found"]]
+        } else if (problems["Healthy"]) {
+            return [NodeStatus.Unhealthy, problems["Healthy"]]
+        } else if (problems["Synced"]) {
+            return [NodeStatus.NotSynced, problems["Synced"]]
+        } else if (problems["Ready"]) {
+            return [NodeStatus.NotReady, problems["Ready"]]
+        }
+
+        return [NodeStatus.Ok, ""]
+    }
+
 }

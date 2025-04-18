@@ -1,4 +1,5 @@
 import {DateTime, DurationUnit} from "luxon";
+import { colors } from "@material-tailwind/react/types/generic";
 
 export function getAge(date1: DateTime, date2: DateTime) {
     if (date1 == date2) {
@@ -49,3 +50,31 @@ export function sendStatsToHeap(name: string, prop: object) {
         window.heap.track(name, prop);
     }
 }
+
+// The function returns a color based on the labels
+// If the second label is not provided, it will be ignored
+// Otherwise, a hash of concatenated labels will be used to determine the color
+export function getColorFromLabel(enabled: string, first_label: string | undefined, second_label?: string | undefined): colors | undefined {
+    const colors: colors[] = ["purple", "lime", "blue-gray", "gray", "light-blue", "brown", "deep-orange", "orange", "amber", "yellow", "light-green", "green", 
+        "teal", "cyan", "blue", "indigo", "deep-purple", "pink", "red"];
+    if (!first_label || typeof first_label !== 'string') return undefined;
+
+    if (enabled === "false") return "gray";
+  
+    const label = second_label ? first_label.substring(0, 3) + second_label : first_label.substring(0, 3);
+
+    // Get the first two letters of the label
+    const key = label.toLowerCase();
+  
+    // Create a hash from the key
+    let hash = 0;
+    for (let i = 0; i < key.length; i++) {
+      hash += key.charCodeAt(i);
+    }
+    
+    // Map the hash to an index in the colors 
+    // There are 19 colors currently
+    const index = hash % colors.length;
+    
+    return colors[index];
+  }

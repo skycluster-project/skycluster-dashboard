@@ -82,7 +82,7 @@ export default function XRDsList({items}: ItemListProps) {
             </Grid>
             <InfoDrawer isOpen={isDrawerOpen} onClose={onClose} type="Composite Resource Definition"
                         title={focused.metadata.name}>
-                <InfoTabs bridge={bridge} initial="status" noRelations={true}></InfoTabs>
+                <InfoTabs bridge={bridge} initial="yaml" noRelations={true}></InfoTabs>
             </InfoDrawer>
         </>
     );

@@ -1,5 +1,5 @@
 import {Box, Drawer, IconButton, Typography} from '@mui/material';
-import {Close as CloseIcon} from '@mui/icons-material';
+import CloseIcon from "@mui/icons-material/Close";
 import React from "react";
 
 type ItemProps = {

@@ -1,18 +1,18 @@
-import {Alert, LinearProgress, Box, Input} from "@mui/material";
+import {Alert, Input, LinearProgress, Box} from "@mui/material";
 import apiClient from "../api.ts";
 import {useEffect, useState} from "react";
-import {ItemList, ManagedResource} from "../types.ts";
-import ManagedResourcesList from "../components/ManagedResourcesList.tsx";
+import {SkyClusterResource, ItemList} from "../types.ts";
+import SkyClusterResourcesList from "../components/SkyClusterResourcesList.tsx";
 import HeaderBar from "../components/HeaderBar.tsx";
 import PageBody from "../components/PageBody.tsx";
 
-const ManagedResourcesPage = () => {
-    const [items, setItems] = useState<ItemList<ManagedResource> | null>(null);
+const SkyClusterResourcesPage = () => {
+    const [items, setItems] = useState<ItemList<SkyClusterResource> | null>(null);
     const [error, setError] = useState<object | null>(null);
     const [searchQuery, setSearchQuery] = useState<string>('');
 
     useEffect(() => {
-        apiClient.getManagedResourcesList()
+        apiClient.getSkyClusterResourcesList()
             .then((data) => setItems(data))
             .catch((error) => setError(error));
     }, []);
@@ -25,7 +25,7 @@ const ManagedResourcesPage = () => {
         return <LinearProgress/>;
     }
 
-    const filterItems = (items: ItemList<ManagedResource>, searchQuery: string) => {
+    const filterItems = (items: ItemList<SkyClusterResource>, searchQuery: string) => {
         if (searchQuery === '') {
             return items;
         }
@@ -38,22 +38,23 @@ const ManagedResourcesPage = () => {
 
     return (
         <>
-            <HeaderBar title="Managed Resources"/>
+            <HeaderBar title="SkyCluster Resources"/>
             <PageBody>
-            <Box m={1}>
-                <Input 
+                <Box m={1}>
+                    <Input 
                     className="w-full" 
                     type="text"
                     placeholder="Search" 
                     value={searchQuery} 
                     onChange={(e) => setSearchQuery(e.target.value)}/>
                 </Box>
-                <ManagedResourcesList items={
+                <SkyClusterResourcesList items={
+                    // TODO: Fix the undefined filterItems return value
                     filterItems(items, searchQuery).items.length > 0 ? filterItems(items, searchQuery) : items
-                }></ManagedResourcesList>
+                }></SkyClusterResourcesList>
             </PageBody>
         </>
     );
 };
 
-export default ManagedResourcesPage;
+export default SkyClusterResourcesPage;

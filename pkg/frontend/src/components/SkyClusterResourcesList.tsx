@@ -4,7 +4,7 @@ import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import RefreshIcon from '@mui/icons-material/Refresh';
 import {CircularProgress, Stack, Card, Chip, CardContent, Grid, Accordion, AccordionSummary, AccordionDetails, List, Button, Box, Alert} from '@mui/material';
-import {CompositeResource, CompositeResourceExtended, ItemList, K8sReference, K8sResource} from "../types.ts";
+import {SkyClusterResource, ItemList, K8sReference, K8sResource} from "../types.ts";
 import Typography from "@mui/material/Typography";
 import ReadySynced from "./ReadySynced.tsx";
 import { useState, useEffect } from "react";
@@ -17,8 +17,8 @@ import apiClient from "../api.ts";
 import {logger} from "../logger.ts";
 
 type ItemProps = {
-    item: CompositeResource;
-    onItemClick: { (item: CompositeResource): void }
+    item: SkyClusterResource;
+    onItemClick: { (item: SkyClusterResource): void }
 };
 
 const copyToClipboard = (name: string) => {
@@ -28,7 +28,7 @@ const copyToClipboard = (name: string) => {
 };
 
 function ListItem({item: initialItem, onItemClick}: ItemProps) {
-    const [item, setItem] = useState<CompositeResource>(initialItem);
+    const [item, setItem] = useState<SkyClusterResource>(initialItem);
     const copyToClipboard = (name: string) => {
         navigator.clipboard.writeText(name).then(() => {}, (err) => {
             console.error('Could not copy text: ', err);
@@ -39,20 +39,9 @@ function ListItem({item: initialItem, onItemClick}: ItemProps) {
     const refreshData = async () => {
         setIsLoading(true);
         try {
-            const refreshedData = await apiClient.getCompositeResource(
+            const refreshedData = await apiClient.getSkyClusterResource(
                 item.apiVersion.split('/')[0], item.apiVersion.split('/')[1], item.kind, item.metadata.name);
-            const { 
-                parentXR, 
-                claim, 
-                managedResourcesClaims,
-                managedResourcesXRs, 
-                managedResources, 
-                composition: {
-                    metadata: {managedFields, ...metadataWithoutManagedFields }, 
-                    ...compositionWithoutMetadata
-                },
-                ...dataWithoutComposite } = refreshedData;
-            setItem(dataWithoutComposite);
+            setItem(refreshedData);
         } catch (error) {
             console.error("Error refreshing data:", error);
         } finally {
@@ -75,18 +64,16 @@ function ListItem({item: initialItem, onItemClick}: ItemProps) {
                             icon={isLoading ? <CircularProgress size={20} /> : <RefreshIcon />} size="small" variant="outlined" color="warning" onClick={() => refreshData()}  />
                         <Chip sx={{ p: 0, mt: 0.5, ml: 1, '& > *': {ml: '8px !important', mr: '-8px !important',}, }}
                             icon={<InfoIcon />} size="small" variant="outlined" color="primary"
-                            onClick={() => copyToClipboard("kubectl get " + item.kind + "." + item.apiVersion.split("/")[0] + " " + item.metadata.name)} />
+                            onClick={() => copyToClipboard("kubectl get " + item.kind + " " + item.metadata.name)} />
                         <Chip sx={{ p: 0, mt: 0.5, ml: 1, '& > *': {ml: '8px !important', mr: '-8px !important',}, }}
                             icon={<HelpOutlineIcon />} size="small" variant="outlined" color="secondary"
-                            onClick={() => copyToClipboard("kubectl describe " + item.kind + "." + item.apiVersion.split("/")[0] + " " + item.metadata.name)} />
+                            onClick={() => copyToClipboard("kubectl describe " + item.kind + " " + item.metadata.name)} />
                         <Chip sx={{ p: 0, mt: 0.5, ml: 1, '& > *': {ml: '8px !important', mr: '-8px !important',}, }}
                             icon={<DeleteForeverIcon />} size="small" variant="outlined" color="error"
-                            onClick={() => copyToClipboard("kubectl delete " + item.kind + "." + item.apiVersion.split("/")[0] + " " + item.metadata.name)} />
+                            onClick={() => copyToClipboard("kubectl delete " + item.kind + " " + item.metadata.name)} />
                     </Box>
                     <Typography variant="body1">Kind: {item.kind}</Typography>
                     <Typography variant="body1">Group: {item.apiVersion}</Typography>
-                    <Typography variant="body1">Composition: {item.spec.compositionRef?.name}</Typography>
-                    <Typography variant="body1">Composed resources: {item.spec.resourceRefs?.length}</Typography>
                     <ReadySynced status={item.status ? item.status : {}}></ReadySynced>
                     <Chip icon={<InfoIcon />} label="Details" variant="outlined" color="info" onClick={() => onItemClick(item)} />
                 </CardContent>
@@ -96,10 +83,10 @@ function ListItem({item: initialItem, onItemClick}: ItemProps) {
 }
 
 type ItemListProps = {
-    items: ItemList<CompositeResource> | undefined;
+    items: ItemList<SkyClusterResource> | undefined;
 };
 
-export default function CompositeResourcesList({items}: ItemListProps) {
+export default function SkyClusterResourcesList({items}: ItemListProps) {
     const {name: focusedName} = useParams();
     const [isDrawerOpen, setDrawerOpen] = useState<boolean>(focusedName != undefined);
     const nullFocused = {metadata: {name: ""}, kind: "", apiVersion: ""};
@@ -109,7 +96,7 @@ export default function CompositeResourcesList({items}: ItemListProps) {
     const onClose = () => {
         setDrawerOpen(false)
         setFocused(nullFocused)
-        navigate("/composite", {state: focused})
+        navigate("/skycluster", {state: focused})
     }
 
     const onItemClick = (item: K8sResource) => {
@@ -131,19 +118,6 @@ export default function CompositeResourcesList({items}: ItemListProps) {
 
     const bridge = new ItemContext()
     bridge.setCurrent(focused)
-    bridge.getGraph = (setter, setError) => {
-        const setData = (res: CompositeResourceExtended) => {
-            logger.log("recv from API", res)
-            const data = xrToGraph(res, navigate)
-            logger.log("set graph data", data.nodes)
-            setter(data)
-        }
-
-        const [group, version] = focused.apiVersion.split("/")
-        apiClient.getCompositeResource(group, version, focused.kind, focused.metadata.name)
-            .then((data) => setData(data))
-            .catch((err) => setError(err))
-    }
 
     const title = (<>
         {focused.metadata.name}
@@ -157,7 +131,7 @@ export default function CompositeResourcesList({items}: ItemListProps) {
     }
 
     // Define Grouped Items
-    const groupedItems: { [itemIndex: string]: CompositeResource[] } = {};
+    const groupedItems: { [itemIndex: string]: SkyClusterResource[] } = {};
     items.items.forEach((item) => {
         const itemIndex = item.apiVersion.split('.')[0] + "." + item.apiVersion.split('.')[1] + "." + item.kind
         if (!groupedItems[itemIndex]) {
@@ -166,7 +140,7 @@ export default function CompositeResourcesList({items}: ItemListProps) {
         groupedItems[itemIndex].push(item);
     });
 
-    const getApiVersion = (items: CompositeResource[]): string => {
+    const getApiVersion = (items: SkyClusterResource[]): string => {
         if (items.length === 0) {
           return "Undefined api version!"; // or handle empty object case appropriately
         }
@@ -256,7 +230,7 @@ export default function CompositeResourcesList({items}: ItemListProps) {
                         <Chip icon={<DeleteForeverIcon />} size="small" variant="outlined" color="error" label="Delete All"
                                     onClick={() => copyToClipboard("kubectl delete " + items[0].kind + " " + items.map(item => item.metadata.name).join(" "))} />
                         <List>
-                            {items.map((item: CompositeResource) => (
+                            {items.map((item: SkyClusterResource) => (
                                 <ListItem item={item} key={item.metadata.name} onItemClick={onItemClick}/>
                             ))}
                         </List>
@@ -268,52 +242,10 @@ export default function CompositeResourcesList({items}: ItemListProps) {
                 key={focused.metadata.name}
                 isOpen={isDrawerOpen}
                 onClose={onClose}
-                type="Composite Resource"
+                type="SkyCluster Resource"
                 title={title}>
                     <InfoTabs bridge={bridge} initial="yaml"></InfoTabs>
             </InfoDrawer>
         </>
     );
-}
-
-function xrToGraph(res: CompositeResourceExtended, navigate: NavigateFunction): GraphData {
-    const data = new GraphData()
-    const xr = data.addNode(NodeTypes.CompositeResource, res, true, navigate)
-
-    if (res.claim) {
-        const claim = data.addNode(NodeTypes.Claim, res.claim, false, navigate);
-        data.addEdge(xr, claim)
-    }
-
-    if (res.parentXR) {
-        const parentXR = data.addNode(NodeTypes.CompositeResource, res.parentXR, false, navigate);
-        data.addEdge(xr, parentXR)
-    }
-
-    const composition = data.addNode(NodeTypes.Composition, res.composition, false, navigate);
-    data.addEdge(composition, xr)
-
-    res.managedResources?.map(resource => {
-        let resId;
-
-        if (res.managedResourcesXRs.some(ref => xrMatch(ref, resource))) {
-            resId = data.addNode(NodeTypes.CompositeResource, resource, false, navigate);
-        } else if (res.managedResourcesClaims.some(ref => claimMatch(ref, resource))) {
-            // TODO: possibly never happens?
-            resId = data.addNode(NodeTypes.Claim, resource, false, navigate);
-        } else {
-            resId = data.addNode(NodeTypes.ManagedResource, resource, false, navigate);
-        }
-        data.addEdge(resId, xr)
-    })
-
-    return data
-}
-
-function xrMatch(ref: K8sReference, resource: K8sResource) {
-    return ref.kind == resource.kind && ref.apiVersion == resource.apiVersion && ref.name == resource.metadata.name
-}
-
-function claimMatch(ref: K8sReference, resource: K8sResource) {
-    return xrMatch(ref, resource) && ref.namespace == resource.metadata.namespace;
 }
