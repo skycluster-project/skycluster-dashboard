@@ -24,19 +24,19 @@ function Home() {
         <Grid container spacing={2}>
           
           <Grid item sm={12} md={6} lg={6} >
-            <HomePageBlock title="Apps" getter={apiClient.getClaimList} onClick={() => {
+            <HomePageBlock title="Apps" getter={apiClient.getProviderProfilesList} onClick={() => {
               navigate("apps")
             }} icon={<ClaimsIcon fontSize={"large"}/>}/>
           </Grid>
 
           <Grid item sm={12} md={6} lg={6}>
-            <HomePageBlock title="Provider Profiles" getter={apiClient.getSkyClusterResourcesList} onClick={() => {
-              navigate("profiles")
+            <HomePageBlock title="Provider Profiles" getter={apiClient.getProviderProfilesList} onClick={() => {
+              navigate("providerprofiles")
             }} icon={<XRDsIcon fontSize={"large"}/>}/>
           </Grid>
           
           <Grid item sm={12} md={6} lg={6}>
-            <HomePageBlock title="Composite Resources" getter={apiClient.getCompositionsList}
+            <HomePageBlock title="Composite Resources" getter={apiClient.getCompositeResourcesList}
               onClick={() => {
                 navigate("composite")
               }} icon={<CompositionsIcon fontSize={"large"}/>}

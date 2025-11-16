@@ -5,22 +5,17 @@ import Typography from '@mui/material/Typography';
 import Divider from '@mui/material/Divider';
 import {Link as RouterLink, Route, Routes} from "react-router-dom";
 import Home from "./pages/Home.tsx";
-import ProvidersPage from "./pages/ProvidersPage.tsx";
 import {CssBaseline, Link, ThemeProvider} from "@mui/material";
-import ProviderPage from "./pages/ProviderPage.tsx";
-import ClaimsPage from "./pages/ClaimsPage.tsx";
-import ClaimPage from "./pages/ClaimPage.tsx";
+import ProviderProfilesPage from "./pages/ProviderProfilesPage.tsx";
 import AppPage from "./pages/AppPage.tsx";
 import ManagedResourcesPage from "./pages/ManagedResourcesPage.tsx";
 import CompositeResourcesPage from "./pages/CompositeResourcesPage.tsx";
-import CompositionsPage from "./pages/CompositionsPage.tsx";
 import XRDsPage from "./pages/XRDsPage.tsx";
 import {themeDark, themeLight} from "./theme.ts";
 import MainMenu from "./components/MainMenu.tsx";
 import CRDsPage from './pages/CRDsPage.tsx';
 import CRsPage from './pages/CRsPage.tsx';
 import CMsPage from './pages/CMsPage.tsx';
-import SkyClusterResourcesPage from "./pages/SkyClusterResourcesPage.tsx";
 import logo from './assets/skycluster-dark-icon-small.png';
 
 const drawerWidth = 260;
@@ -37,9 +32,7 @@ const DrawerHeader = styled('div')(({theme}) => ({
 export default function App() {
   // TODO: extract some components from here
   const XRDs = <XRDsPage/>
-  const compositions = <CompositionsPage/>
   const composite = <CompositeResourcesPage/>
-  const skycluster = <SkyClusterResourcesPage/>
   const managed = <ManagedResourcesPage/>
 
   return (
@@ -89,20 +82,14 @@ export default function App() {
           <ThemeProvider theme={themeLight}>
             <Routes>
               <Route path="/" element={<Home/>}/>
-              <Route path="/providers" element={<ProvidersPage/>}/>
-              <Route path="/providers/:provider" element={<ProviderPage/>}/>
-              <Route path="/claims" element={<ClaimsPage/>}/>
-              <Route path="/claims/:group/:version/:kind/:namespace/:name" element={<ClaimPage/>}/>
+              <Route path="/providerprofiles" element={<ProviderProfilesPage/>}/>
+              <Route path="/providerprofiles/:group/:version/:name" element={<ProviderProfilesPage/>}/>
               <Route path="/remote/:group/:version/:kind/:namespace/:name" element={<AppPage/>}/>
               <Route path="/remote/:group/:version/:kind/:namespace/:name/:deployName" element={<AppPage/>}/>
               <Route path="/managed" element={managed}/>
               <Route path="/managed/:group/:version/:kind/:name" element={managed}/>
-              <Route path="/skycluster" element={skycluster}/>
-              <Route path="/skycluster/:group/:version/:kind/:name" element={skycluster}/>
               <Route path="/composite" element={composite}/>
               <Route path="/composite/:group/:version/:kind/:name" element={composite}/>
-              <Route path="/compositions" element={compositions}/>
-              <Route path="/compositions/:name" element={compositions}/>
               <Route path="/xrds" element={XRDs}/>
               <Route path="/xrds/:name" element={XRDs}/>
               <Route path="/cms" element={<CMsPage/>}/>

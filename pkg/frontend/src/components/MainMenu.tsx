@@ -3,7 +3,6 @@ import ListItem from "@mui/material/ListItem";
 import ListItemButton from "@mui/material/ListItemButton";
 import {Link as RouterLink, useLocation} from "react-router-dom";
 import ListItemIcon from "@mui/material/ListItemIcon";
-import ClaimsIcon from "@mui/icons-material/PanToolTwoTone";
 import ListItemText from "@mui/material/ListItemText";
 import CompositeIcon from "@mui/icons-material/PolylineTwoTone";
 import ManagedIcon from "@mui/icons-material/HubTwoTone";
@@ -11,7 +10,6 @@ import ProvidersIcon from "@mui/icons-material/GridViewTwoTone";
 import Divider from "@mui/material/Divider";
 import CompositionsIcon from "@mui/icons-material/AccountTreeTwoTone";
 import XRDsIcon from "@mui/icons-material/SchemaTwoTone";
-import { Typography } from "@mui/material";
 
 export default function MainMenu() {
   const location = useLocation();
@@ -40,7 +38,7 @@ export default function MainMenu() {
         </ListItemButton>
       </ListItem>
       <ListItem key="Profiles" disablePadding>
-        <ListItemButton component={RouterLink} to="/profiles" sx={styleHighLight("/profiles")}>
+        <ListItemButton component={RouterLink} to="/providerprofiles" sx={styleHighLight("/providerprofiles")}>
           <ListItemIcon>
             <ProvidersIcon/>
           </ListItemIcon>

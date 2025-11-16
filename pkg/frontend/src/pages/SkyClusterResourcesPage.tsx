@@ -12,7 +12,7 @@ const SkyClusterResourcesPage = () => {
     const [searchQuery, setSearchQuery] = useState<string>('');
 
     useEffect(() => {
-        apiClient.getSkyClusterResourcesList()
+        apiClient.getProviderProfilesList()
             .then((data) => setItems(data))
             .catch((error) => setError(error));
     }, []);

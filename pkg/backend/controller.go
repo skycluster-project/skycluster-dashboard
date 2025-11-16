@@ -78,6 +78,7 @@ var (
 	SkyClusterManagedBy      = SkyClusterAPI + "/managed-by"
 	SkyClusterManagedByValue = "skycluster"
 	SkyClusterConfigType     = SkyClusterAPI + "/config-type"
+	SkyClusterNS 					 = "skycluster-system"
 )
 
 type CRDMap = map[string][]*v1.CustomResourceDefinition
@@ -109,10 +110,6 @@ func (m *ManagedUnstructured) GetProviderConfigReference() *xpv1.Reference {
 
 	log.Warnf("Did not find providerConfigRef in managed resource '%v'", m.GetName())
 	return nil
-}
-
-func (m *ManagedUnstructured) SetProviderConfigReference(_ *xpv1.Reference) {
-	panic("should not be called, report this to app maintainers")
 }
 
 func (c *Controller) GetStatus() StatusInfo {
@@ -303,51 +300,93 @@ func (c *Controller) GetRemoteResource(ec echo.Context) error {
 	return errors.New("status not found")
 }
 
-func (c *Controller) GetProviders(ec echo.Context) error {
-	providers, err := c.APIv1.Providers().List(c.ctx)
-	if err != nil {
-		return err
-	}
+// Author: Ehsan Etesami
+func (c *Controller) GetProviderProfilesResource(ec echo.Context) error {
 
-	return ec.JSONPretty(http.StatusOK, providers, "  ")
-}
-
-func (c *Controller) GetProvider(ec echo.Context) error {
-	res, err := c.APIv1.Providers().Get(c.ctx, ec.Param("name"))
-	if err != nil {
-		return err
-	}
-
-	return ec.JSONPretty(http.StatusOK, res, "  ")
-}
-
-func (c *Controller) GetProviderEvents(ec echo.Context) error {
 	gvk := schema.GroupVersionKind{
-		Group:   cpv1.Group,
-		Version: cpv1.Version,
-		Kind:    cpv1.ProviderKind,
+		Group:   ec.Param("group"),
+		Version: ec.Param("version"),
+		Kind:    ec.Param("kind"),
 	}
 
-	ref := v12.ObjectReference{
-		Name: ec.Param("name"),
-	}
-	ref.SetGroupVersionKind(gvk)
+	claimRef := v12.ObjectReference{Namespace: ec.Param("namespace"), Name: ec.Param("name")}
+	claimRef.SetGroupVersionKind(gvk)
 
-	res, err := c.Events.List(c.ctx, &ref)
+	claim := uclaim.New()
+	err := c.getDynamicResource(&claimRef, claim)
 	if err != nil {
 		return err
 	}
+
+	if s, ok := claim.Object["status"].(map[string]interface{}); ok {
+		if k3s, ok := s["k3s"].(map[string]interface{}); ok {
+			if cfg, ok := k3s["kubeconfig"].(string); ok {
+				config, err := clientcmd.RESTConfigFromKubeConfig([]byte(cfg))
+				if err != nil {
+					return err
+				}
+
+				// Create a clientset for the remote cluster
+				remoteClientset, err := kubernetes.NewForConfig(config)
+				if err != nil {
+					return err
+				}
+				// get specific deploymeny given the name
+				deploymentsClient := remoteClientset.AppsV1().Deployments(metav1.NamespaceDefault)
+				deployment, err := deploymentsClient.Get(context.TODO(), ec.Param("deployName"), metav1.GetOptions{})
+				if err != nil {
+					return err
+				}
+				return ec.JSONPretty(http.StatusOK, deployment, "  ")
+			}
+			return errors.New("kubeconfig not found")
+		}
+		return errors.New("k3s not found")
+	}
+	return errors.New("status not found")
+}
+
+// Author: Ehsan Etesami
+// GetProviderProfiles lists ProviderProfile resources (core.skycluster.io/v1alpha1/providerprofiles)
+func (c *Controller) GetProviderProfiles(ec echo.Context) error {
+	res := unstructured.UnstructuredList{Items: []unstructured.Unstructured{}}
+
+	gvr := schema.GroupVersionResource{
+		Group:    SkyClusterCoreGroup,
+		Version:  SkyClusterVersion,
+		Resource: "providerprofiles",
+	}
+
+	list, err := c.dynamicClient.Resource(gvr).Namespace(SkyClusterNS).List(c.ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	res.Items = append(res.Items, list.Items...)
 
 	return ec.JSONPretty(http.StatusOK, res, "  ")
 }
 
-func (c *Controller) GetProviderConfigs(ec echo.Context) error {
-	res, err := c.GetProviderConfigsInner(ec, ec.Param("name"))
+// GetProviderProfile retrieves a single ProviderProfile by group/version/kind/name
+// Route wired as: /api/providerprofiles/:group/:version/:kind/:name
+func (c *Controller) GetProviderProfile(ec echo.Context) error {
+	gvk := schema.GroupVersionKind{
+		Group:   ec.Param("group"),
+		Version: ec.Param("version"),
+		Kind:    "ProviderProfile",
+	}
+
+	gvr := schema.GroupVersionResource{
+		Group:    gvk.Group,
+		Version:  gvk.Version,
+		Resource: utils.Plural(gvk.Kind),
+	}
+
+	item, err := c.dynamicClient.Resource(gvr).Namespace(SkyClusterNS).Get(c.ctx, ec.Param("name"), metav1.GetOptions{})
 	if err != nil {
 		return err
 	}
 
-	return ec.JSONPretty(http.StatusOK, res, "  ")
+	return ec.JSONPretty(http.StatusOK, item, "  ")
 }
 
 func (c *Controller) GetProviderConfigsInner(ec echo.Context, provName string) (*unstructured.UnstructuredList, error) {
@@ -422,59 +461,6 @@ func (c *Controller) LoadCRDs(ec echo.Context) (CRDMap, error) {
 		}
 	}
 	return provCRDs, nil
-}
-
-func (c *Controller) GetClaims(ec echo.Context) error {
-	list := unstructured.UnstructuredList{
-		Object: nil,
-		Items:  []unstructured.Unstructured{},
-	}
-
-	err := c.fillXRDList(ec, &list, func(spec cpext.CompositeResourceDefinitionSpec) *string {
-		if spec.ClaimNames == nil { // the XRD allows it to be omitted
-			return nil
-		}
-		return &spec.ClaimNames.Plural
-	})
-	if err != nil {
-		return err
-	}
-
-	return ec.JSONPretty(http.StatusOK, list, "  ")
-}
-
-func (c *Controller) GetClaim(ec echo.Context) error {
-	gvk := schema.GroupVersionKind{
-		Group:   ec.Param("group"),
-		Version: ec.Param("version"),
-		Kind:    ec.Param("kind"),
-	}
-
-	claimRef := v12.ObjectReference{Namespace: ec.Param("namespace"), Name: ec.Param("name")}
-	claimRef.SetGroupVersionKind(gvk)
-
-	claim := uclaim.New()
-	err := c.getDynamicResource(&claimRef, claim)
-	if err != nil {
-		return err
-	}
-
-	if ec.QueryParam("full") != "" {
-		if xrRef := claim.GetResourceReference(); xrRef != nil {
-
-			xr := uxres.New()
-			_ = c.getDynamicResource(xrRef, xr)
-			claim.Object["compositeResource"] = xr
-
-			err := c.fillManagedResources(ec, xr)
-			if err != nil {
-				return err
-			}
-
-			c.fillCompositionByRef(claim)
-		}
-	}
-	return ec.JSONPretty(http.StatusOK, claim.Object, "  ")
 }
 
 func (c *Controller) fillCompositionByRef(obj UnstructuredWithCompositionRef) {
@@ -693,15 +679,6 @@ func (c *Controller) GetComposites(ec echo.Context) error {
 	return ec.JSONPretty(http.StatusOK, list, "  ")
 }
 
-func (c *Controller) GetCompositions(ec echo.Context) error {
-	items, err := c.ExtV1.Compositions().List(c.ctx)
-	if err != nil {
-		return err
-	}
-
-	return ec.JSONPretty(http.StatusOK, items, "  ")
-}
-
 func (c *Controller) GetXRDs(ec echo.Context) error {
 	items, err := c.cachedListXRDs(ec)
 	if err != nil {
@@ -786,23 +763,10 @@ func (c *Controller) GetComposite(ec echo.Context) error {
 	return ec.JSONPretty(http.StatusOK, xr, "  ")
 }
 
-func (c *Controller) GetSkyClusterResources(ec echo.Context) error {
+func (c *Controller) GetCoreResources(ec echo.Context) error {
 	res := unstructured.UnstructuredList{Items: []unstructured.Unstructured{}}
 
 	gvr := []schema.GroupVersionResource{
-		{Group: "svc.skycluster.io",
-			Version:  "v1alpha1",
-			Resource: "skyproviders",
-		},
-		{Group: "svc.skycluster.io",
-			Version:  "v1alpha1",
-			Resource: "skyapps",
-		},
-		{
-			Group:    "core.skycluster.io",
-			Version:  "v1alpha1",
-			Resource: "skyclusters",
-		},
 		{
 			Group:    "core.skycluster.io",
 			Version:  "v1alpha1",

@@ -50,26 +50,35 @@ export type K8sResource = {
     status?: Status
 }
 
-// export type SkyClusterResource = K8sResource & {
-//     spec?: {
-//         vservicecosts?: {
-//             providerReference: {
-//                 name: string
-//                 region: string
-//                 type: string
-//             }
-//         }[]
-//         vserviceCompositions?: {
-//             apiVersion: string
-//             kind: string
-//         }[]
-//     }
-//     status?: {
-//         // For ILP Task
-//         result?: string
-//         solution?: string
-//     }
-// }
+export type ProviderProfile = K8sResource & {
+  spec?: {
+    // common fields
+    description?: string;
+    providerReference?: {
+      name?: string;
+      region?: string;
+      type?: string;
+    };
+    credentials?: {
+      secretRef?: Reference;
+    };
+    // optional list of compositions or other references
+    compositions?: {
+      apiVersion?: string;
+      kind?: string;
+      name?: string;
+    }[];
+    // arbitrary provider-specific config
+    config?: { [key: string]: any };
+    [key: string]: any;
+  };
+  status?: Status & {
+    // provider-specific runtime status
+    ready?: boolean;
+    // already included via Status.conditions if present
+    [key: string]: any;
+  };
+};
 
 export type CM = K8sResource & {
     data: { [key: string]: string }

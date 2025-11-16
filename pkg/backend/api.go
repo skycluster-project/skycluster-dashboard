@@ -112,15 +112,15 @@ func configureRoutes(data *Controller, eng *echo.Echo) {
 	crs := api.Group("/crs")
 	crs.GET("/:group/:version/:resource", data.GetCustomResources)
 
-	rels := api.Group("/providers")
-	rels.GET("", data.GetProviders)
-	rels.GET("/:name", data.GetProvider)
-	rels.GET("/:name/events", data.GetProviderEvents)
-	rels.GET("/:name/configs", data.GetProviderConfigs)
+	// rels := api.Group("/providers")
+	// rels.GET("", data.GetProviders)
+	// rels.GET("/:name", data.GetProvider)
+	// rels.GET("/:name/events", data.GetProviderEvents)
+	// rels.GET("/:name/configs", data.GetProviderConfigs)
 
-	claims := api.Group("/claims")
-	claims.GET("", data.GetClaims)
-	claims.GET("/:group/:version/:kind/:namespace/:name", data.GetClaim)
+	// claims := api.Group("/claims")
+	// claims.GET("", data.GetClaims)
+	// claims.GET("/:group/:version/:kind/:namespace/:name", data.GetClaim)
 
 	managed := api.Group("/managed")
 	managed.GET("", data.GetManagedsNoCaching)
@@ -131,16 +131,18 @@ func configureRoutes(data *Controller, eng *echo.Echo) {
 	composite.GET("", data.GetComposites)
 	composite.GET("/:group/:version/:kind/:name", data.GetComposite)
 
-	skycluster := api.Group("/skycluster")
-	skycluster.GET("", data.GetSkyClusterResources)
-	skycluster.GET("/:group/:version/:kind/:name", data.GetSkyClusterResource)
+	skycluster := api.Group("/providerprofiles")
+	skycluster.GET("", data.GetProviderProfiles)
+	skycluster.GET("/:group/:version/:name", data.GetProviderProfile)
+	// skycluster.GET("", data.GetCoreResources)
+	// skycluster.GET("/:group/:version/:kind/:name", data.GetSkyClusterResource)
 
 	remoteResources := api.Group("/remote")
 	remoteResources.GET("/:group/:version/:kind/:namespace/:name", data.GetRemoteResources)
 	remoteResources.GET("/:group/:version/:kind/:namespace/:name/:deployName", data.GetRemoteResource)
 
-	compositions := api.Group("/compositions")
-	compositions.GET("", data.GetCompositions)
+	// compositions := api.Group("/compositions")
+	// compositions.GET("", data.GetCompositions)
 
 	xrds := api.Group("/xrds")
 	xrds.GET("", data.GetXRDs)
