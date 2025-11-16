@@ -87,18 +87,21 @@ function ZoneBlockCompact({
           {showAllImages ? (
             <List dense>
               {(images || []).map((img, idx) => {
-                const label = img.nameLabel ?? img.name ?? shortText(img);
+                const primary = [img.nameLabel, img.name].filter(Boolean).join(' — ');
                 const gen = img.generation ? ` (${img.generation})` : "";
                 return (
                   <MUIListItem key={idx}>
-                    <ListItemText primary={label + gen} secondary={img.pattern ? String(img.pattern) : undefined} />
+                    <ListItemText
+                      primary={primary + gen}
+                      secondary={img.pattern ? String(img.pattern) : undefined}
+                    />
                   </MUIListItem>
                 );
               })}
             </List>
           ) : (
             <CompactList items={images} max={small} renderItem={(img: ImageOffering, idx: number) => {
-              const label = img.nameLabel ?? img.name ?? shortText(img);
+              const label = [img.nameLabel, img.name].filter(Boolean).join(' — ');
               const gen = img.generation ? ` (${img.generation})` : "";
               return <ListItemText primary={label + gen} secondary={img.pattern ? String(img.pattern) : undefined} />;
             }} />
@@ -119,7 +122,7 @@ function ZoneBlockCompact({
                 const specs = `${it.vcpus ? `${it.vcpus} vCPU` : ""}${it.ram ? ` ${it.ram}` : ""}${it.price ? ` • ${it.price}` : ""}`;
                 return (
                   <MUIListItem key={idx}>
-                    <ListItemText primary={`${it.instanceTypeName ? it.instanceTypeName + " / " : ""}${name}`} secondary={specs} />
+                    <ListItemText primary={`${name}`} secondary={specs} />
                   </MUIListItem>
                 );
               })}
@@ -127,8 +130,8 @@ function ZoneBlockCompact({
           ) : (
             <CompactList items={instanceOfferings} max={small} renderItem={(it: InstanceOffering, idx: number) => {
               const name = it.nameLabel ?? it.name ?? shortText(it);
-              const specs = `${it.vcpus ? `${it.vcpus} vCPU` : ""}${it.ram ? ` ${it.ram}` : ""}${it.price ? ` • ${it.price}` : ""}`;
-              return <ListItemText primary={`${it.instanceTypeName ? it.instanceTypeName + " / " : ""}${name}`} secondary={specs} />;
+              const specs = `${it.vcpus ? `${it.vcpus} vCPU` : ""}${it.ram ? ` ${it.ram}` : ""}${it.price ? ` • ${it.price}$/h` : ""}`;
+              return <ListItemText primary={`${name}`} secondary={specs} />;
             }} />
           )}
           {instanceOfferings && instanceOfferings.length > small && (
@@ -222,17 +225,10 @@ function ListItem({item: initialItem, onItemClick}: ItemProps) {
 
             <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>
               <ReadySynced status={item.status ? item.status : {}} />
-              {loadingDeps ? (
-                <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>
-                  <CircularProgress size={18} />
-                  <Typography variant="body2">Loading deps...</Typography>
-                </Box>
-              ) : (
-                <>
-                  <Chip icon={<InfoIcon />} label="Details" variant="outlined" color="info"
-                    onClick={() => onItemClick(item)} />
-                </>
-              )}
+              <>
+                <Chip icon={<InfoIcon />} label="Details" variant="outlined" color="info"
+                  onClick={() => onItemClick(item)} />
+              </>
             </Box>
           </Box>
 
