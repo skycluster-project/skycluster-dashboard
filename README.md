@@ -16,10 +16,14 @@ export GO_ENV=dev
 
 go mod tidy
 
-ro run . -v
+go run . -v
 ```
 
-Now you can access the backend at `localhost:8090/api` using curl and frontend at `localhost:5173`.
+Now you can access the backend at `localhost:8090/api` using curl and frontend at `localhost:5173`. When accessing for development purposes make sure both ports are accessible within the development environemnt; e.g.:
+
+```bash
+ssh dev-server -L5173:localhost:5173 -L8090:localhost:8090
+```
 
 
 This repository is a forked of [komoplane](https://github.com/komodorio/komoplane) repository.
