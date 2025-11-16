@@ -50,9 +50,42 @@ export type K8sResource = {
     status?: Status
 }
 
+export type ImageOffering = {
+  nameLabel?: string;
+  pattern?: string;
+  name?: string;
+  generation?: string;
+  zone?: string;
+  [key: string]: any;
+};
+
+export type InstanceOffering = {
+  name?: string;
+  nameLabel?: string;
+  vcpus?: number;
+  ram?: string;
+  price?: string;
+  gpu?: {
+    enabled?: boolean;
+    manufacturer?: string;
+    count?: number;
+    model?: string;
+    unit?: string;
+    memory?: string;
+  };
+  generation?: string;
+  volumeTypes?: string[];
+  spot?: {
+    price?: string;
+    enabled?: boolean;
+  };
+  zone?: string; // added by backend when flattening
+  instanceTypeName?: string; // added by backend to reference the parent InstanceType
+  [key: string]: any;
+};
+
 export type ProviderProfile = K8sResource & {
   spec?: {
-    // common fields
     description?: string;
     providerReference?: {
       name?: string;
@@ -62,21 +95,13 @@ export type ProviderProfile = K8sResource & {
     credentials?: {
       secretRef?: Reference;
     };
-    // optional list of compositions or other references
-    compositions?: {
-      apiVersion?: string;
-      kind?: string;
-      name?: string;
-    }[];
-    // arbitrary provider-specific config
     config?: { [key: string]: any };
     [key: string]: any;
   };
-  status?: Status & {
-    // provider-specific runtime status
-    ready?: boolean;
-    // already included via Status.conditions if present
-    [key: string]: any;
+  dependencies?: {
+    images?: ImageOffering[]; // from images.status.images
+    instanceTypes?: InstanceOffering[]; // flattened from instancetype.status.offerings
+    combinedConfigSummary?: { [key: string]: any };
   };
 };
 

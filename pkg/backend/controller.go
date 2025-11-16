@@ -300,54 +300,107 @@ func (c *Controller) GetRemoteResource(ec echo.Context) error {
 	return errors.New("status not found")
 }
 
-// Author: Ehsan Etesami
-func (c *Controller) GetProviderProfilesResource(ec echo.Context) error {
+// collectProviderDependencies gathers inner lists:
+// - for Images: collects each image.status.images (list of image offerings)
+// - for InstanceTypes: flattens instanceType.status.offerings (zone offerings -> offerings) into a list of offerings (including zone)
+func (c *Controller) collectProviderDependencies(providerName string) (map[string]interface{}, error) {
+	res := map[string]interface{}{}
 
-	gvk := schema.GroupVersionKind{
-		Group:   ec.Param("group"),
-		Version: ec.Param("version"),
-		Kind:    ec.Param("kind"),
+	// Images: gather status.images from Image resources with spec.providerRef == providerName
+	imageGVR := schema.GroupVersionResource{
+		Group:    SkyClusterCoreGroup,
+		Version:  SkyClusterVersion,
+		Resource: "images",
 	}
-
-	claimRef := v12.ObjectReference{Namespace: ec.Param("namespace"), Name: ec.Param("name")}
-	claimRef.SetGroupVersionKind(gvk)
-
-	claim := uclaim.New()
-	err := c.getDynamicResource(&claimRef, claim)
+	imgList, err := c.dynamicClient.Resource(imageGVR).Namespace(SkyClusterNS).List(c.ctx, metav1.ListOptions{})
 	if err != nil {
-		return err
+		// Log but continue with empty list
+		log.Debugf("Failed to list Images: %v", err)
+		imgList = &unstructured.UnstructuredList{Items: []unstructured.Unstructured{}}
 	}
 
-	if s, ok := claim.Object["status"].(map[string]interface{}); ok {
-		if k3s, ok := s["k3s"].(map[string]interface{}); ok {
-			if cfg, ok := k3s["kubeconfig"].(string); ok {
-				config, err := clientcmd.RESTConfigFromKubeConfig([]byte(cfg))
-				if err != nil {
-					return err
+	imagesList := []interface{}{}
+	for _, it := range imgList.Items {
+		// filter by spec.providerRef
+		spec, _ := it.Object["spec"].(map[string]interface{})
+		if spec != nil {
+			if pr, ok := spec["providerRef"].(string); ok && pr == providerName {
+				// extract status.images array
+				if status, exists := it.Object["status"].(map[string]interface{}); exists {
+					if imgs, ok := status["images"].([]interface{}); ok {
+						imagesList = append(imagesList, imgs...)
+					}
 				}
-
-				// Create a clientset for the remote cluster
-				remoteClientset, err := kubernetes.NewForConfig(config)
-				if err != nil {
-					return err
-				}
-				// get specific deploymeny given the name
-				deploymentsClient := remoteClientset.AppsV1().Deployments(metav1.NamespaceDefault)
-				deployment, err := deploymentsClient.Get(context.TODO(), ec.Param("deployName"), metav1.GetOptions{})
-				if err != nil {
-					return err
-				}
-				return ec.JSONPretty(http.StatusOK, deployment, "  ")
 			}
-			return errors.New("kubeconfig not found")
 		}
-		return errors.New("k3s not found")
 	}
-	return errors.New("status not found")
+	res["images"] = imagesList
+
+	// InstanceTypes: gather and flatten status.offerings from InstanceType resources with spec.providerRef == providerName
+	itGVR := schema.GroupVersionResource{
+		Group:    SkyClusterCoreGroup,
+		Version:  SkyClusterVersion,
+		Resource: "instancetypes",
+	}
+	itList, err := c.dynamicClient.Resource(itGVR).Namespace(SkyClusterNS).List(c.ctx, metav1.ListOptions{})
+	if err != nil {
+		log.Debugf("Failed to list InstanceTypes: %v", err)
+		itList = &unstructured.UnstructuredList{Items: []unstructured.Unstructured{}}
+	}
+
+	instanceOfferings := []interface{}{}
+	for _, it := range itList.Items {
+		// filter by spec.providerRef
+		spec, _ := it.Object["spec"].(map[string]interface{})
+		if spec != nil {
+			if pr, ok := spec["providerRef"].(string); ok && pr == providerName {
+				// status.offerings is []ZoneOfferings
+				if status, exists := it.Object["status"].(map[string]interface{}); exists {
+					if zoneOfferings, ok := status["offerings"].([]interface{}); ok {
+						for _, z := range zoneOfferings {
+							zoneMap, ok := z.(map[string]interface{})
+							if !ok {
+								continue
+							}
+							zoneName, _ := zoneMap["zone"].(string)
+							if offs, ok := zoneMap["zoneOfferings"].([]interface{}); ok {
+								for _, off := range offs {
+									// off is an InstanceOffering; we can add zone info to it
+									if offMap, ok := off.(map[string]interface{}); ok {
+										// make a shallow copy to avoid mutating original
+										copyOff := map[string]interface{}{}
+										for k, v := range offMap {
+											copyOff[k] = v
+										}
+										// add zone info for context
+										copyOff["zone"] = zoneName
+										// optionally add source instanceType name
+										copyOff["instanceTypeName"] = it.GetName()
+										instanceOfferings = append(instanceOfferings, copyOff)
+									} else {
+										// if not a map, append as-is
+										instanceOfferings = append(instanceOfferings, off)
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	res["instanceTypes"] = instanceOfferings
+
+	// You may also include a combined summary if desired
+	res["combinedConfigSummary"] = map[string]interface{}{
+		"imagesCount":        len(imagesList),
+		"instanceOfferingsCount": len(instanceOfferings),
+	}
+
+	return res, nil
 }
 
-// Author: Ehsan Etesami
-// GetProviderProfiles lists ProviderProfile resources (core.skycluster.io/v1alpha1/providerprofiles)
+// GetProviderProfiles lists ProviderProfile resources and attaches the dependency inner lists.
 func (c *Controller) GetProviderProfiles(ec echo.Context) error {
 	res := unstructured.UnstructuredList{Items: []unstructured.Unstructured{}}
 
@@ -361,18 +414,28 @@ func (c *Controller) GetProviderProfiles(ec echo.Context) error {
 	if err != nil {
 		return err
 	}
-	res.Items = append(res.Items, list.Items...)
+
+	for _, item := range list.Items {
+		name := item.GetName()
+		deps, derr := c.collectProviderDependencies(name)
+		if derr == nil {
+			item.Object["dependencies"] = deps
+		} else {
+			log.Debugf("Failed to collect dependencies for provider %s: %v", name, derr)
+		}
+		res.Items = append(res.Items, item)
+	}
 
 	return ec.JSONPretty(http.StatusOK, res, "  ")
 }
 
-// GetProviderProfile retrieves a single ProviderProfile by group/version/kind/name
-// Route wired as: /api/providerprofiles/:group/:version/:kind/:name
+// GetProviderProfile retrieves a single ProviderProfile and attaches the dependency inner lists.
 func (c *Controller) GetProviderProfile(ec echo.Context) error {
+	// route: /api/providerprofiles/:group/:version/:name
 	gvk := schema.GroupVersionKind{
 		Group:   ec.Param("group"),
 		Version: ec.Param("version"),
-		Kind:    "ProviderProfile",
+		Kind:    "providerprofiles",
 	}
 
 	gvr := schema.GroupVersionResource{
@@ -384,6 +447,14 @@ func (c *Controller) GetProviderProfile(ec echo.Context) error {
 	item, err := c.dynamicClient.Resource(gvr).Namespace(SkyClusterNS).Get(c.ctx, ec.Param("name"), metav1.GetOptions{})
 	if err != nil {
 		return err
+	}
+
+	name := item.GetName()
+	deps, derr := c.collectProviderDependencies(name)
+	if derr == nil {
+		item.Object["dependencies"] = deps
+	} else {
+		log.Debugf("Failed to collect dependencies for provider %s: %v", name, derr)
 	}
 
 	return ec.JSONPretty(http.StatusOK, item, "  ")
