@@ -73,13 +73,6 @@ function ZoneBlockCompact({
   const small = 3;
   return (
     <Box sx={{ mt: 1, mb: 1 }}>
-      <Stack direction="row" spacing={1} alignItems="center" justifyContent="space-between">
-        <Stack direction="row" spacing={1} alignItems="center">
-          <Typography variant="subtitle2">{zone}</Typography>
-          <Chip label={`Images: ${images?.length ?? 0}`} size="small" />
-          <Chip label={`Offerings: ${instanceOfferings?.length ?? 0}`} size="small" />
-        </Stack>
-      </Stack>
 
       <Box sx={{ mt: 1, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2 }}>
         <Box>

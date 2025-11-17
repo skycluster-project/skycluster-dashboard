@@ -390,7 +390,7 @@ const SystemStatusPage = () => {
         <Stack direction="row" justifyContent="space-between" alignItems="center" sx={{ mb: 3 }}>
           <Stack direction="row" spacing={2} alignItems="center">
             <Chip label={loading ? "Syncing" : "Synced"} icon={loading ? <CircularProgress size={18} /> : <CheckCircleIcon />} color={loading ? "default" : "success"} sx={{ fontWeight: 600 }} />
-            <Typography variant="h6">XSetup Hierarchy</Typography>
+            <Typography variant="h6">SkyCluster Setup</Typography>
           </Stack>
 
           <Stack direction="row" spacing={2} alignItems="center">
