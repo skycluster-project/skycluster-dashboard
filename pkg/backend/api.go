@@ -112,16 +112,6 @@ func configureRoutes(data *Controller, eng *echo.Echo) {
 	crs := api.Group("/crs")
 	crs.GET("/:group/:version/:resource", data.GetCustomResources)
 
-	// rels := api.Group("/providers")
-	// rels.GET("", data.GetProviders)
-	// rels.GET("/:name", data.GetProvider)
-	// rels.GET("/:name/events", data.GetProviderEvents)
-	// rels.GET("/:name/configs", data.GetProviderConfigs)
-
-	// claims := api.Group("/claims")
-	// claims.GET("", data.GetClaims)
-	// claims.GET("/:group/:version/:kind/:namespace/:name", data.GetClaim)
-
 	managed := api.Group("/managed")
 	managed.GET("", data.GetManagedsNoCaching)
 	// managed.GET("", data.GetManageds)
@@ -134,8 +124,6 @@ func configureRoutes(data *Controller, eng *echo.Echo) {
 	skycluster := api.Group("/providerprofiles")
 	skycluster.GET("", data.GetProviderProfiles)
 	skycluster.GET("/:group/:version/:name", data.GetProviderProfile)
-	// skycluster.GET("", data.GetCoreResources)
-	// skycluster.GET("/:group/:version/:kind/:name", data.GetSkyClusterResource)
 	
 	systemResources := api.Group("/system")
 	systemResources.GET("", data.GetSystemComposites)
@@ -143,9 +131,6 @@ func configureRoutes(data *Controller, eng *echo.Echo) {
 	remoteResources := api.Group("/remote")
 	remoteResources.GET("/:group/:version/:kind/:namespace/:name", data.GetRemoteResources)
 	remoteResources.GET("/:group/:version/:kind/:namespace/:name/:deployName", data.GetRemoteResource)
-
-	// compositions := api.Group("/compositions")
-	// compositions.GET("", data.GetCompositions)
 
 	xrds := api.Group("/xrds")
 	xrds.GET("", data.GetXRDs)

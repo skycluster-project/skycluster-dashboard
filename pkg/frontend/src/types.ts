@@ -224,8 +224,8 @@ export type ManagedResourceExtended = ManagedResource & {
 export type CompositeResource = K8sResource & {
     spec: {
         claimRef?: Reference
-        compositionRef?: Reference
-        resourceRefs: Reference[]
+        compositionRef?: K8sReference
+        resourceRefs: K8sReference[]
     }
     status?: Status
 }

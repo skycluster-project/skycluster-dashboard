@@ -10,7 +10,8 @@ import { Link as RouterLink, useLocation } from "react-router-dom";
 
 import CompositeIcon from "@mui/icons-material/PolylineTwoTone";
 import ManagedIcon from "@mui/icons-material/HubTwoTone";
-import ProvidersIcon from "@mui/icons-material/GridViewTwoTone";
+import AssessmentIcon from "@mui/icons-material/Assessment";
+import CloudIcon from "@mui/icons-material/Cloud";
 import CompositionsIcon from "@mui/icons-material/AccountTreeTwoTone";
 import XRDsIcon from "@mui/icons-material/SchemaTwoTone";
 
@@ -46,6 +47,20 @@ export default function MainMenu() {
         <ListItem disablePadding>
           <ListItemButton
             component={RouterLink}
+            to="/system"
+            selected={isLinkActive("/system")}
+            sx={itemSx(isLinkActive("/system"))}
+          >
+            <ListItemIcon sx={iconSx}>
+              <AssessmentIcon />
+            </ListItemIcon>
+            <ListItemText primary="System Status" primaryTypographyProps={{ noWrap: true }} />
+          </ListItemButton>
+        </ListItem>
+
+        <ListItem disablePadding>
+          <ListItemButton
+            component={RouterLink}
             to="/apps"
             selected={isLinkActive("/apps")}
             sx={itemSx(isLinkActive("/apps"))}
@@ -65,7 +80,7 @@ export default function MainMenu() {
             sx={itemSx(isLinkActive("/providerprofiles"))}
           >
             <ListItemIcon sx={iconSx}>
-              <ProvidersIcon />
+              <CloudIcon />
             </ListItemIcon>
             <ListItemText primary="Provider Profiles" primaryTypographyProps={{ noWrap: true }} />
           </ListItemButton>

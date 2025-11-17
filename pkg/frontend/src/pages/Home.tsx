@@ -8,6 +8,8 @@ import apiClient from "../api";
 
 import ManagedIcon from "@mui/icons-material/HubTwoTone";
 import CloudIcon from "@mui/icons-material/Cloud";
+import AssessmentIcon from "@mui/icons-material/Assessment";
+
 import AppsIcon from "@mui/icons-material/Apps";
 import CompositionsIcon from "@mui/icons-material/AccountTreeTwoTone";
 
@@ -43,6 +45,15 @@ export default function Home() {
       </Box>
 
       <Grid container spacing={3}>
+        <Grid item xs={12} sm={6} md={6} lg={6}>
+          <HomePageBlock
+            title="System Status"
+            getter={apiClient.getSystemComposites}
+            onClick={() => navigate("system")}
+            icon={<AssessmentIcon {...iconProps} />}
+          />
+        </Grid>
+
         <Grid item xs={12} sm={6} md={6} lg={6}>
           <HomePageBlock
             title="Apps"

@@ -850,42 +850,6 @@ func (c *Controller) GetSystemComposites(ec echo.Context) error {
 	return ec.JSONPretty(http.StatusOK, res, "  ")
 }
 
-func (c *Controller) GetCoreResources(ec echo.Context) error {
-	res := unstructured.UnstructuredList{Items: []unstructured.Unstructured{}}
-
-	gvr := []schema.GroupVersionResource{
-		{
-			Group:    "core.skycluster.io",
-			Version:  "v1alpha1",
-			Resource: "skyxrds",
-		},
-		{
-			Group:    "core.skycluster.io",
-			Version:  "v1alpha1",
-			Resource: "ilptasks",
-		},
-		{
-			Group:    "policy.skycluster.io",
-			Version:  "v1alpha1",
-			Resource: "dataflowpolicies",
-		},
-		{
-			Group:    "policy.skycluster.io",
-			Version:  "v1alpha1",
-			Resource: "deploymentpolicies",
-		},
-	}
-	for _, thisGvr := range gvr {
-		list, err := c.dynamicClient.Resource(thisGvr).Namespace("").List(c.ctx, metav1.ListOptions{})
-		if err != nil {
-			return err
-		}
-		res.Items = append(res.Items, list.Items...)
-	}
-
-	return ec.JSONPretty(http.StatusOK, res, "  ")
-}
-
 func (c *Controller) GetSkyClusterResource(ec echo.Context) error {
 	res := unstructured.UnstructuredList{Items: []unstructured.Unstructured{}}
 

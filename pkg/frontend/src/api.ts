@@ -47,9 +47,9 @@ class APIClient {
         return data;
     }
 
-    getCustomResources = async (group: string, version: string, name: string) => {
-        const response = await this.innterFetch(`/api/crs/${group}/${version}/${name}`);
-        const data: ItemList<K8sResource> = await response.json();
+    getCustomResources = async (group: string, version: string, resource: string) => {
+        const response = await this.innterFetch(`/api/crs/${group}/${version}/${resource}`);
+        const data: ItemList<CompositeResourceExtended> = await response.json();
         return data;
     };
 
