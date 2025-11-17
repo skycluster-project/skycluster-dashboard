@@ -84,6 +84,55 @@ export type InstanceOffering = {
   [key: string]: any;
 };
 
+export type XSetupStatus = Status & {
+  apiServer?: string;
+  ca?: {
+    certificate?: string;
+    secretName?: string;
+    secretNamespace?: string;
+  };
+  headscale?: {
+    connectionSecretName?: string;
+    loginUrl?: string;
+    token?: string;
+  };
+  istio?: {
+    rootCASecretName?: string;
+  };
+  keypair?: {
+    publicKey?: string;
+    secretName?: string;
+    secretNamespace?: string;
+  };
+  namespace?: string;
+  providerConfig?: {
+    helm?: { name?: string };
+    kubernetes?: { name?: string };
+    [key: string]: any;
+  };
+  submariner?: {
+    connectionSecretName?: string;
+    [key: string]: any;
+  };
+  // allow additional fields
+  [key: string]: any;
+};
+
+export type XSetup = CompositeResource & {
+  status?: XSetupStatus;
+};
+
+export type XOverlayStatus = Status & {
+  connectionSecretName?: string;
+  namespace?: string;
+  // allow additional fields
+  [key: string]: any;
+};
+
+export type XOverlay = CompositeResource & {
+  status?: XOverlayStatus;
+};
+
 export type ProviderProfile = K8sResource & {
   spec?: {
     description?: string;

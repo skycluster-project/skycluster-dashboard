@@ -834,6 +834,22 @@ func (c *Controller) GetComposite(ec echo.Context) error {
 	return ec.JSONPretty(http.StatusOK, xr, "  ")
 }
 
+func (c *Controller) GetSystemComposites(ec echo.Context) error {
+	res := unstructured.UnstructuredList{Items: []unstructured.Unstructured{}}
+
+	gvr := schema.GroupVersionResource{
+		Group:    "skycluster.io",
+		Version:  "v1alpha1",
+		Resource: "xsetups",
+	}
+	list, err := c.dynamicClient.Resource(gvr).Namespace("").List(c.ctx, metav1.ListOptions{})
+	if err != nil {
+		return err
+	}
+	res.Items = append(res.Items, list.Items...)
+	return ec.JSONPretty(http.StatusOK, res, "  ")
+}
+
 func (c *Controller) GetCoreResources(ec echo.Context) error {
 	res := unstructured.UnstructuredList{Items: []unstructured.Unstructured{}}
 

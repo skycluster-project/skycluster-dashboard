@@ -110,6 +110,13 @@ class APIClient {
         return data;
     };
 
+    getSystemComposites = async () => {
+        const response = await this.innterFetch(`/api/system`);
+        const data: ItemList<CompositeResource> = await response.json();
+        sendStatsToHeap('List System Composites', {count: data.items.length});
+        return data;
+    };
+
     // getCompositionsList = async () => {
     //     const response = await this.innterFetch(`/api/compositions`);
     //     const data: ItemList<Composition> = await response.json();

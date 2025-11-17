@@ -136,7 +136,10 @@ func configureRoutes(data *Controller, eng *echo.Echo) {
 	skycluster.GET("/:group/:version/:name", data.GetProviderProfile)
 	// skycluster.GET("", data.GetCoreResources)
 	// skycluster.GET("/:group/:version/:kind/:name", data.GetSkyClusterResource)
-
+	
+	systemResources := api.Group("/system")
+	systemResources.GET("", data.GetSystemComposites)
+	
 	remoteResources := api.Group("/remote")
 	remoteResources.GET("/:group/:version/:kind/:namespace/:name", data.GetRemoteResources)
 	remoteResources.GET("/:group/:version/:kind/:namespace/:name/:deployName", data.GetRemoteResource)

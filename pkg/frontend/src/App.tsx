@@ -17,6 +17,7 @@ import CRDsPage from './pages/CRDsPage.tsx';
 import CRsPage from './pages/CRsPage.tsx';
 import CMsPage from './pages/CMsPage.tsx';
 import logo from './assets/skycluster-dark-icon-small.png';
+import SystemStatusPage from './pages/SystemStatusPage.tsx';
 
 const drawerWidth = 260;
 
@@ -82,6 +83,7 @@ export default function App() {
           <ThemeProvider theme={themeLight}>
             <Routes>
               <Route path="/" element={<Home/>}/>
+              <Route path="/system" element={<SystemStatusPage/>}/>
               <Route path="/providerprofiles" element={<ProviderProfilesPage/>}/>
               <Route path="/providerprofiles/:group/:version/:name" element={<ProviderProfilesPage/>}/>
               <Route path="/remote/:group/:version/:kind/:namespace/:name" element={<AppPage/>}/>
