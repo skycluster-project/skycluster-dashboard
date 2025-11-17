@@ -4,6 +4,7 @@ import apiClient from "../api.ts";
 import {
   CompositeResourceExtended,
 } from "../types.ts";
+import ReadySynced from "../components/ReadySynced.tsx";
 import HeaderBar from "../components/HeaderBar.tsx";
 import PageBody from "../components/PageBody.tsx";
 import LinearProgress from "@mui/material/LinearProgress";
@@ -45,29 +46,6 @@ const parseApiVersion = (apiVersion?: string): { group: string; version: string 
   return { group: parts[0], version: parts[1] ?? "" };
 };
 
-const isConditionTrue = (res: CompositeResourceExtended | undefined, type: string) =>
-  (res?.status?.conditions ?? []).some((c: any) => c.type === type && c.status === "True");
-
-const StatusChips: React.FC<{ resource: CompositeResourceExtended }> = ({ resource }) => {
-  const ready = isConditionTrue(resource, "Ready");
-  const synced = isConditionTrue(resource, "Synced");
-  return (
-    <Stack direction="row" spacing={1} alignItems="center">
-      <Chip
-        size="small"
-        label={ready ? "Ready" : "Not Ready"}
-        color={ready ? "success" : "default"}
-        icon={ready ? <CheckCircleIcon /> : undefined}
-      />
-      <Chip
-        size="small"
-        label={synced ? "Synced" : "Not Synced"}
-        color={synced ? "info" : "default"}
-      />
-    </Stack>
-  );
-};
-
 // kinds we want to hide from display
 const isExcludedKind = (kind?: string) => {
   if (!kind) return false;
@@ -104,7 +82,7 @@ const TreeNodeView: React.FC<TreeNodeViewProps> = ({ node, level = 0, onItemClic
                 {name}
               </Typography>
             </Stack>
-            <StatusChips resource={r} />
+            <ReadySynced status={r.status ?? {}} />
           </Stack>
 
           <Stack direction="row" spacing={1} alignItems="center">
