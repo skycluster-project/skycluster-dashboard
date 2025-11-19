@@ -5,8 +5,8 @@ import {
   CompositeResource,
   CompositeResourceExtended,
   ItemList,
-  K8sResource,
   K8sReference,
+  K8sResource,
 } from "../types.ts";
 import HeaderBar from "../components/HeaderBar.tsx";
 import PageBody from "../components/PageBody.tsx";
@@ -32,11 +32,9 @@ import InfoTabs, { ItemContext } from "../components/InfoTabs.tsx";
 import ConditionChips from "../components/ConditionChips.tsx";
 
 const POLL_MS = 195000;
-// Polling interval specifically for re-checking non-ready composites (only re-fetch those)
 const NON_READY_POLL_MS = 15000;
 
 const DEFINED_COMPOSITE_KINDS = [
-  // { group: "skycluster.io", version: "v1alpha1", resource: "xsetups" },
   { group: "skycluster.io", version: "v1alpha1", resource: "xinstances" },
   { group: "skycluster.io", version: "v1alpha1", resource: "xproviders" },
   { group: "skycluster.io", version: "v1alpha1", resource: "xkubes" },
@@ -44,7 +42,7 @@ const DEFINED_COMPOSITE_KINDS = [
 ];
 
 type TreeNode = {
-  resource: any; // can be CompositeResourceExtended, composition object, managed resource, claim, root object, reference, etc.
+  resource: any;
   kind: string;
   title: string;
   children: TreeNode[];
@@ -60,156 +58,24 @@ const StatusChips: React.FC<{ resource: any }> = ({ resource }) => {
   const synced = isConditionTrue(resource, "Synced");
   return (
     <Stack direction="row" spacing={1} alignItems="center">
-      <Chip
-        size="small"
-        label={ready ? "Ready" : "Not Ready"}
-        color={ready ? "success" : "default"}
-      />
-      <Chip
-        size="small"
-        label={synced ? "Synced" : "Not Synced"}
-        color={synced ? "info" : "default"}
-      />
+      <Chip size="small" label={ready ? "Ready" : "Not Ready"} color={ready ? "success" : "default"} />
+      <Chip size="small" label={synced ? "Synced" : "Not Synced"} color={synced ? "info" : "default"} />
     </Stack>
   );
 };
 
-// Exclude providerconfig and Composition (case-insensitive)
 const isExcludedKind = (kind?: string) => {
   if (!kind) return false;
   const k = kind.toLowerCase();
   return k === "providerconfig" || k === "composition";
 };
 
-type TreeNodeViewProps = {
-  node: TreeNode;
-  level?: number;
-  onItemClick: (r: any) => void;
-  onExpand?: (node: TreeNode) => void; // called when node is expanded (useful for lazy-loading)
-  isLoading?: boolean; // indicates whether children are currently being fetched for this node
-};
-
-const TreeNodeView: React.FC<TreeNodeViewProps> = ({ node, level = 0, onItemClick, onExpand, isLoading = false }) => {
-  // Collapse should be closed by default
-  const [open, setOpen] = useState<boolean>(false);
-  const { resource, kind, title } = node;
-
-  // hide nodes whose resource kind is excluded
-  if (isExcludedKind(resource?.kind)) return null;
-
-  // Determine if this node is expandable even if children are currently empty.
-  // For root objects (level === 0) we consider spec.resourceRefs as potential children to load lazily.
-  const hasLazyChildren =
-    level === 0 && Array.isArray(resource?.spec?.resourceRefs) && resource.spec.resourceRefs.length > 0;
-
-  const visibleChildren = node.children.filter(c => !isExcludedKind(c.resource?.kind));
-
-  // small header + status + details button + expand control
-  return (
-    <Box sx={{ ml: level * 3, mt: 1 }}>
-      <Paper variant="outlined" sx={{ p: 1 }}>
-        <Stack direction="row" alignItems="center" justifyContent="space-between">
-          <Stack direction="row" spacing={2} alignItems="center">
-            <Box>
-              <Typography variant={level === 0 ? "subtitle1" : "body1"} sx={{ fontWeight: level === 0 ? 700 : 600 }}>
-                {kind}
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                {title}
-              </Typography>
-            </Box>
-            <StatusChips resource={resource} />
-          </Stack>
-
-          <Stack direction="row" spacing={1} alignItems="center">
-            <Button
-              size="small"
-              variant="outlined"
-              startIcon={<InfoIcon />}
-              onClick={() => onItemClick(resource)}
-            >
-              Details
-            </Button>
-
-            { (visibleChildren.length > 0 || hasLazyChildren) && (
-              <IconButton
-                size="small"
-                onClick={() => {
-                  const next = !open;
-                  setOpen(next);
-                  // when expanding and we have a lazy-load scenario and no children loaded yet, call onExpand
-                  if (next && onExpand && hasLazyChildren && visibleChildren.length === 0) {
-                    onExpand(node);
-                  }
-                }}
-                aria-label="toggle children"
-              >
-                {open ? <ExpandLessIcon /> : <ExpandMoreIcon />}
-              </IconButton>
-            )}
-          </Stack>
-        </Stack>
-
-        {/* If node has lazy children but none are loaded yet, show a hint OUTSIDE of the collapse so
-            the user can see the hint even when the collapse is closed. */}
-        {hasLazyChildren && visibleChildren.length === 0 && !isLoading && (
-          <Box sx={{ mt: 1, ml: 1 }}>
-            <Typography variant="caption" color="text.secondary">
-              Click expand to load {resource.spec.resourceRefs.length} child(ren)...
-            </Typography>
-          </Box>
-        )}
-
-        <Collapse in={open}>
-          <Box sx={{ mt: 1 }}>
-            {/* If loading, show a loading "object" placeholder so the user sees that fetching is in progress */}
-            {isLoading && visibleChildren.length === 0 ? (
-              <Box sx={{ ml: 2 }}>
-                <Paper variant="outlined" sx={{ p: 1, display: "flex", alignItems: "center", gap: 1 }}>
-                  <CircularProgress size={18} />
-                  <Typography variant="body2" color="text.secondary">
-                    Loading child(ren)...
-                  </Typography>
-                </Paper>
-              </Box>
-            ) : visibleChildren.length > 0 ? (
-              <Box sx={{ mt: 1 }}>
-                {visibleChildren.map((child) => {
-                  const childRes = child.resource;
-                  const childName = childRes?.metadata?.name ?? childRes?.name ?? child.title;
-                  const childKind = childRes?.kind ?? child.kind;
-                  return (
-                    <TreeNodeView
-                      key={mkKey(childKind, childName)}
-                      node={child}
-                      level={level + 1}
-                      onItemClick={onItemClick}
-                      onExpand={onExpand}
-                      // nested nodes won't have isLoading passed in by parent unless managed there
-                    />
-                  );
-                })}
-              </Box>
-            ) : (
-              // When there are no visible children and not loading, show nothing inside collapse.
-              null
-            )}
-          </Box>
-        </Collapse>
-      </Paper>
-    </Box>
-  );
-};
-
-/**
- * Build a TreeNode from a composite extended object.
- * To prevent cycles (e.g., root appearing as a child of its referenced composites),
- * pass a 'seen' Set of keys (kind|name) representing ancestors. Any child matching
- * a key in 'seen' will be skipped.
- */
-const buildTreeFromComposite = (xr: CompositeResourceExtended, seen: Set<string> = new Set()): TreeNode => {
+const buildTreeFromComposite = (
+  xr: CompositeResourceExtended,
+  seen: Set<string> = new Set(),
+  shallow: boolean = true
+): TreeNode => {
   const rootKey = mkKey(xr.kind, xr.metadata?.name);
-  // If this node is already in the seen set, return a minimal placeholder to avoid cycles.
   if (seen.has(rootKey)) {
     return {
       resource: xr,
@@ -219,11 +85,9 @@ const buildTreeFromComposite = (xr: CompositeResourceExtended, seen: Set<string>
     };
   }
 
-  // Mark this node as seen for descendants
   const nextSeen = new Set(seen);
   nextSeen.add(rootKey);
 
-  // root node
   const root: TreeNode = {
     resource: xr,
     kind: `${xr.kind} (${xr.apiVersion})`,
@@ -231,7 +95,6 @@ const buildTreeFromComposite = (xr: CompositeResourceExtended, seen: Set<string>
     children: [],
   };
 
-  // claim (if present) - keep unless its kind is excluded
   if ((xr as any).claim && !isExcludedKind((xr as any).claim.kind)) {
     const claim = (xr as any).claim;
     const claimKey = mkKey(claim.kind, claim.name ?? claim.metadata?.name);
@@ -245,7 +108,6 @@ const buildTreeFromComposite = (xr: CompositeResourceExtended, seen: Set<string>
     }
   }
 
-  // parentXR (if present)
   if ((xr as any).parentXR && !isExcludedKind((xr as any).parentXR.kind)) {
     const p = (xr as any).parentXR;
     const pKey = mkKey(p.kind, p.metadata?.name);
@@ -259,7 +121,6 @@ const buildTreeFromComposite = (xr: CompositeResourceExtended, seen: Set<string>
     }
   }
 
-  // composition (composition object is included in the extended XR response)
   if ((xr as any).composition) {
     const comp = (xr as any).composition;
     if (!isExcludedKind(comp?.kind)) {
@@ -270,7 +131,6 @@ const buildTreeFromComposite = (xr: CompositeResourceExtended, seen: Set<string>
         children: [],
       };
 
-      // If composition has composedTemplates or resources, present them as children
       const compChildren: any[] = (comp?.resources ?? comp?.spec?.resources ?? comp?.composedTemplates ?? []);
       if (Array.isArray(compChildren) && compChildren.length > 0) {
         compChildren.forEach((c, idx) => {
@@ -289,7 +149,6 @@ const buildTreeFromComposite = (xr: CompositeResourceExtended, seen: Set<string>
       root.children.push(compNode);
     }
   } else if (xr.spec?.compositionRef?.name) {
-    // composition missing but compositionRef exists — show ref as placeholder
     const compRef = xr.spec.compositionRef;
     const compRefKey = mkKey(compRef.kind ?? "CompositionRef", compRef.name);
     if (!nextSeen.has(compRefKey)) {
@@ -302,7 +161,6 @@ const buildTreeFromComposite = (xr: CompositeResourceExtended, seen: Set<string>
     }
   }
 
-  // managedResources: these are typically full objects included in the extended XR response
   if ((xr as any).managedResources && Array.isArray((xr as any).managedResources)) {
     const mrs = (xr as any).managedResources as K8sResource[];
     mrs.forEach((mr) => {
@@ -317,15 +175,14 @@ const buildTreeFromComposite = (xr: CompositeResourceExtended, seen: Set<string>
       }
     });
   } else {
-    // optionally, if resourceRefs exist in spec, show them as placeholders
-    const resourceRefs = xr.spec?.resourceRefs ?? [];
+    const resourceRefs: K8sReference[] = xr.spec?.resourceRefs ?? [];
     if (Array.isArray(resourceRefs) && resourceRefs.length > 0) {
       resourceRefs.forEach((ref: K8sReference) => {
         const refKey = mkKey(ref.kind, ref.name);
         if (!nextSeen.has(refKey) && !isExcludedKind(ref.kind)) {
           root.children.push({
             resource: ref,
-            kind: `${ref.kind} (${ref.apiVersion})`,
+            kind: `${ref.kind} (${ref.apiVersion ?? "n/a"})`,
             title: ref.name,
             children: [],
           });
@@ -338,7 +195,6 @@ const buildTreeFromComposite = (xr: CompositeResourceExtended, seen: Set<string>
 };
 
 const CompositeResourcesPage = () => {
-  // items now represent the "root" custom resources (e.g., xsetups)
   const [items, setItems] = useState<ItemList<any> | null>(null);
   const [trees, setTrees] = useState<TreeNode[]>([]);
   const [error, setError] = useState<any | null>(null);
@@ -346,23 +202,15 @@ const CompositeResourcesPage = () => {
   const [loading, setLoading] = useState<boolean>(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
-  // Drawer/Details state
   const [isDrawerOpen, setDrawerOpen] = useState<boolean>(false);
   const [focused, setFocused] = useState<any | null>(null);
 
-  // persistent cache of fetched composite extended objects across fetches/refreshes
   const compositeCacheRef = useRef<Map<string, CompositeResourceExtended>>(new Map());
-
-  // Set of keys currently being refreshed to prevent duplicate parallel requests
   const refreshingKeysRef = useRef<Set<string>>(new Set());
+  const loadedKeysRef = useRef<Set<string>>(new Set());
+  const [loadingKeys, setLoadingKeys] = useState<Set<string>>(new Set());
+  const [expandedKeys, setExpandedKeys] = useState<Set<string>>(new Set());
 
-  // Track which root keys have already had children loaded (so expanding again won't re-fetch)
-  const loadedRootsRef = useRef<Set<string>>(new Set());
-
-  // Track which roots are currently loading children (for UI feedback); use state so UI re-renders
-  const [loadingRoots, setLoadingRoots] = useState<Set<string>>(new Set());
-
-  // Bridge should be stable across renders; create ref so InfoTabs can call getGraph etc.
   const bridgeRef = useRef<ItemContext | null>(null);
   if (bridgeRef.current === null) bridgeRef.current = new ItemContext();
   const bridge = bridgeRef.current;
@@ -374,16 +222,12 @@ const CompositeResourcesPage = () => {
       setErrorCb("No focused resource");
       return;
     }
-    // If focused is a CompositeResource, fetch extended form for graph; otherwise just pass focused
     const maybeApi = (focused as CompositeResource).apiVersion ? true : false;
     if (maybeApi) {
       const [group, version] = (focused as CompositeResource).apiVersion.split("/");
       apiClient
         .getCompositeResource(group, version, (focused as CompositeResource).kind, (focused as CompositeResource).metadata.name)
-        .then((data) => {
-          // For the drawer graph we just pass the extended composite as-is (InfoTabs will render)
-          setter(data);
-        })
+        .then((data) => setter(data))
         .catch((err) => setErrorCb(err));
     } else {
       setter(focused);
@@ -391,28 +235,22 @@ const CompositeResourcesPage = () => {
   };
 
   const refreshSingleComposite = useCallback(async (resource: any) => {
-    // only handle composite-like resources that have apiVersion "group/version", kind and name
     if (!resource || !resource.apiVersion || !resource.kind) return null;
     const name = resource.metadata?.name ?? resource.name;
     if (!name) return null;
 
     const key = mkKey(resource.kind, name);
-    // avoid duplicate refreshes
     const refreshing = refreshingKeysRef.current;
     if (refreshing.has(key)) return null;
     refreshing.add(key);
 
     try {
-      if (!resource.apiVersion.includes("/")) {
-        return null; // cannot fetch extended composite without group/version
-      }
+      if (!resource.apiVersion.includes("/")) return null;
       const [group, version] = resource.apiVersion.split("/");
       const xr = await apiClient.getCompositeResource(group, version, resource.kind, name) as CompositeResourceExtended;
-      // cache it
       compositeCacheRef.current.set(key, xr);
       return { key, xr };
     } catch (err) {
-      // If fetch failed, create a placeholder composite with error status (similar to fetchAll logic)
       const placeholder: CompositeResourceExtended = {
         apiVersion: resource.apiVersion ?? "unknown/unknown",
         kind: resource.kind,
@@ -427,29 +265,22 @@ const CompositeResourcesPage = () => {
     }
   }, []);
 
-  // Helper: immutably traverse trees and replace a node identified by targetKey with the new node built from xr.
-  // Important: merge children from the existing node where appropriate to avoid losing children when xr payload is partial.
   const replaceNodeWithXR = useCallback((prevTrees: TreeNode[], targetKey: string, xr: CompositeResourceExtended): TreeNode[] => {
     const cloneAndReplace = (nodes: TreeNode[], ancestors: Set<string>): TreeNode[] => {
       return nodes.map((n) => {
         const res = n.resource;
         const name = res?.metadata?.name ?? res?.name;
         const nodeKey = mkKey(res?.kind, name);
-        // Prepare next ancestors set for children
         const nextAncestors = new Set(ancestors);
         if (res?.kind && name) nextAncestors.add(nodeKey);
 
         if (nodeKey === targetKey) {
-          // Build new subtree from xr
           const ancestorsForXR = new Set(ancestors);
-          const newNode = buildTreeFromComposite(xr, ancestorsForXR);
+          const newNode = buildTreeFromComposite(xr, ancestorsForXR, true);
 
-          // Merge children: if the new node has no children or is missing some children that existed previously,
-          // preserve/append existing children (avoids losing children when xr doesn't include them).
           const existingChildren = n.children ?? [];
           const newChildren = newNode.children ?? [];
 
-          // Build a set of keys for new children
           const newChildKeys = new Set(newChildren.map((c) => {
             const rn = c.resource;
             const rname = rn?.metadata?.name ?? rn?.name ?? c.title;
@@ -457,7 +288,6 @@ const CompositeResourcesPage = () => {
             return mkKey(rkind, rname);
           }));
 
-          // Append any existing children that don't appear in the freshly built children.
           const mergedChildren = [...newChildren];
           for (const ec of existingChildren) {
             const ern = ec.resource;
@@ -469,21 +299,11 @@ const CompositeResourcesPage = () => {
             }
           }
 
-          // Return node with merged children
-          return {
-            ...newNode,
-            // preserve the resource reference as the freshly fetched xr (newNode.resource === xr)
-            children: mergedChildren,
-          };
+          return { ...newNode, children: mergedChildren };
         }
 
-        // otherwise, recurse into children
         const newChildren = n.children && n.children.length > 0 ? cloneAndReplace(n.children, nextAncestors) : n.children;
-        // Only create a new node if children changed
-        const childrenChanged = newChildren !== n.children;
-        if (childrenChanged) {
-          return { ...n, children: newChildren };
-        }
+        if (newChildren !== n.children) return { ...n, children: newChildren };
         return n;
       });
     };
@@ -491,7 +311,6 @@ const CompositeResourcesPage = () => {
     return cloneAndReplace(prevTrees, new Set<string>());
   }, []);
 
-  // Helper: replace children array for node whose key matches targetKey
   const replaceChildrenForKey = useCallback((prevTrees: TreeNode[], targetKey: string, newChildren: TreeNode[]): TreeNode[] => {
     const cloneAndReplace = (nodes: TreeNode[]): TreeNode[] => {
       return nodes.map((n) => {
@@ -504,9 +323,7 @@ const CompositeResourcesPage = () => {
         }
 
         const children = n.children && n.children.length > 0 ? cloneAndReplace(n.children) : n.children;
-        if (children !== n.children) {
-          return { ...n, children };
-        }
+        if (children !== n.children) return { ...n, children };
         return n;
       });
     };
@@ -521,9 +338,6 @@ const CompositeResourcesPage = () => {
       const treesOut: TreeNode[] = [];
       const rootItemsAggregate: any[] = [];
 
-      // Use persistent cache so later per-node refreshes can reuse results
-      const fetchedComposites = compositeCacheRef.current;
-
       for (const defKind of DEFINED_COMPOSITE_KINDS) {
         let roots;
         try {
@@ -534,29 +348,22 @@ const CompositeResourcesPage = () => {
         }
 
         for (const rootItem of roots.items ?? []) {
-          // Build a root node representing the custom root resource (e.g., an XSetup)
           const rootNode: TreeNode = {
             resource: rootItem,
             kind: `${rootItem.kind} (${rootItem.apiVersion})`,
             title: rootItem.metadata?.name ?? rootItem.name ?? "<unnamed-root>",
-            children: [], // intentionally empty - will be loaded lazily on expand
+            children: [],
           };
 
-          // Collect root item for items state
           rootItemsAggregate.push(rootItem);
-
-          // NOTE: children are not fetched here on purpose. They will be loaded when the user expands the root.
-          // We still keep the root node and rely on TreeNodeView to show the expand control when spec.resourceRefs exist.
-
-          // Add this constructed root node to the output
-          if (!isExcludedKind(rootNode.resource?.kind)) {
-            treesOut.push(rootNode);
-          }
+          if (!isExcludedKind(rootNode.resource?.kind)) treesOut.push(rootNode);
         }
       }
 
       setItems({ items: rootItemsAggregate } as ItemList<any>);
       setTrees(treesOut);
+      // Ensure top-level nodes start collapsed after refresh
+      setExpandedKeys(new Set());
       setLastUpdated(new Date());
     } catch (err) {
       setError(err);
@@ -571,18 +378,13 @@ const CompositeResourcesPage = () => {
     return () => clearInterval(id);
   }, [fetchAll]);
 
-  // New effect: periodically scan the current trees for nodes that are not Ready and
-  // re-fetch only those composites (not the whole list). This keeps the UI responsive for
-  // non-ready items without reloading everything.
   useEffect(() => {
     let stopped = false;
     const id = setInterval(async () => {
       if (stopped) return;
-      // Capture snapshot of current trees
       const currentTrees = trees;
       if (!currentTrees || currentTrees.length === 0) return;
 
-      // Collect composite-like nodes that are not Ready
       const candidates: { resource: any; key: string }[] = [];
 
       const walk = (nodes: TreeNode[]) => {
@@ -591,13 +393,9 @@ const CompositeResourcesPage = () => {
           if (!r) continue;
           const name = r?.metadata?.name ?? r?.name;
           const nodeKey = mkKey(r?.kind, name);
-          // We only attempt to refetch nodes that have an apiVersion in group/version form
-          // (these are the extended composite resources we can fetch via apiClient.getCompositeResource)
           if (r?.apiVersion && typeof r.apiVersion === "string" && r.apiVersion.includes("/")) {
             const ready = isConditionTrue(r, "Ready");
-            if (!ready) {
-              candidates.push({ resource: r, key: nodeKey });
-            }
+            if (!ready) candidates.push({ resource: r, key: nodeKey });
           }
           if (n.children && n.children.length > 0) walk(n.children);
         }
@@ -606,26 +404,15 @@ const CompositeResourcesPage = () => {
 
       if (candidates.length === 0) return;
 
-      // For each candidate, refresh individually (avoid flooding using refreshingKeysRef)
       for (const c of candidates) {
-        // Skip if already being refreshed
         if (refreshingKeysRef.current.has(c.key)) continue;
-        // Do not await sequentially to allow concurrent refreshes for different keys.
         void (async () => {
           const result = await refreshSingleComposite(c.resource);
           if (!result) return;
           const { key, xr } = result;
-          // Update trees immutably replacing the node with the new xr subtree
-          setTrees((prev) => {
-            // Replace matching node with buildTreeFromComposite(xr, ancestors), but merge children from existing node
-            const updated = replaceNodeWithXR(prev, key, xr);
-            return updated;
-          });
-          // If focused was pointing to this resource, update focused to the new xr
+          setTrees((prev) => replaceNodeWithXR(prev, key, xr));
           const focusedKey = focused ? mkKey(focused.kind, focused.metadata?.name ?? focused.name) : null;
-          if (focusedKey === key) {
-            setFocused(xr);
-          }
+          if (focusedKey === key) setFocused(xr);
         })();
       }
     }, NON_READY_POLL_MS);
@@ -636,21 +423,33 @@ const CompositeResourcesPage = () => {
     };
   }, [trees, refreshSingleComposite, replaceNodeWithXR, focused]);
 
-  // Called by TreeNodeView when the user expands a root node that has spec.resourceRefs.
-  const onExpandRoot = useCallback(async (node: TreeNode) => {
+  const onExpandNode = useCallback(async (node: TreeNode) => {
     const rootRes = node.resource;
     const rootName = rootRes?.metadata?.name ?? rootRes?.name;
     const rootKey = mkKey(rootRes?.kind, rootName);
     if (!rootRes) return;
-    if (loadedRootsRef.current.has(rootKey)) return; // already loaded
 
-    const refs: K8sReference[] = Array.isArray(rootRes.spec?.resourceRefs) ? rootRes.spec.resourceRefs : [];
-    if (refs.length === 0) {
-      loadedRootsRef.current.add(rootKey);
+    // If already loaded, just expand (ensure expanded state)
+    if (loadedKeysRef.current.has(rootKey)) {
+      setExpandedKeys((prev) => {
+        const next = new Set(prev);
+        next.add(rootKey);
+        return next;
+      });
       return;
     }
 
-    // Determine if there is any ref that requires fetching (i.e., has apiVersion and is not cached)
+    const refs: K8sReference[] = Array.isArray(rootRes.spec?.resourceRefs) ? rootRes.spec.resourceRefs : [];
+    if (refs.length === 0) {
+      loadedKeysRef.current.add(rootKey);
+      setExpandedKeys((prev) => {
+        const next = new Set(prev);
+        next.add(rootKey);
+        return next;
+      });
+      return;
+    }
+
     const needsFetch = refs.some((ref) => {
       if (!ref || !ref.kind || !ref.name) return false;
       const childKey = mkKey(ref.kind, ref.name);
@@ -659,7 +458,7 @@ const CompositeResourcesPage = () => {
     });
 
     if (needsFetch) {
-      setLoadingRoots((prev) => {
+      setLoadingKeys((prev) => {
         const next = new Set(prev);
         next.add(rootKey);
         return next;
@@ -675,23 +474,19 @@ const CompositeResourcesPage = () => {
 
         const childKey = mkKey(ref.kind, ref.name);
 
-        // If cached composite, reuse it
         if (compositeCacheRef.current.has(childKey)) {
           const xr = compositeCacheRef.current.get(childKey)!;
-          const xrNode = buildTreeFromComposite(xr, new Set([rootKey]));
-          newChildren.push(xrNode);
+          newChildren.push(buildTreeFromComposite(xr, new Set([rootKey]), true));
           continue;
         }
 
-        // If the ref has an apiVersion with group/version, try to fetch the extended composite
         const apiVer = ref.apiVersion ?? "";
         if (apiVer.includes("/")) {
           const [group, version] = apiVer.split("/");
           try {
             const xr = await apiClient.getCompositeResource(group, version, ref.kind, ref.name) as CompositeResourceExtended;
             compositeCacheRef.current.set(childKey, xr);
-            const xrNode = buildTreeFromComposite(xr, new Set([rootKey]));
-            newChildren.push(xrNode);
+            newChildren.push(buildTreeFromComposite(xr, new Set([rootKey]), true));
           } catch (err) {
             const placeholder: CompositeResourceExtended = {
               apiVersion: ref.apiVersion ?? "unknown/unknown",
@@ -701,27 +496,30 @@ const CompositeResourcesPage = () => {
               status: { conditions: [{ type: "Error", status: "True", reason: "FetchFailed", message: String(err) }] },
             } as any;
             compositeCacheRef.current.set(childKey, placeholder);
-            const phNode = buildTreeFromComposite(placeholder, new Set([rootKey]));
-            newChildren.push(phNode);
+            newChildren.push(buildTreeFromComposite(placeholder, new Set([rootKey]), true));
           }
         } else {
-          // No apiVersion given on the reference — treat as a placeholder child
-          const placeholderChild: TreeNode = {
+          newChildren.push({
             resource: ref,
             kind: `${ref.kind} (${ref.apiVersion ?? "n/a"})`,
             title: ref.name,
             children: [],
-          };
-          newChildren.push(placeholderChild);
+          });
         }
       }
 
-      // Update trees immutably
       setTrees((prev) => replaceChildrenForKey(prev, rootKey, newChildren));
-      loadedRootsRef.current.add(rootKey);
+      loadedKeysRef.current.add(rootKey);
+
+      // ensure expanded after children are loaded
+      setExpandedKeys((prev) => {
+        const next = new Set(prev);
+        next.add(rootKey);
+        return next;
+      });
     } finally {
       if (needsFetch) {
-        setLoadingRoots((prev) => {
+        setLoadingKeys((prev) => {
           const next = new Set(prev);
           next.delete(rootKey);
           return next;
@@ -766,23 +564,117 @@ const CompositeResourcesPage = () => {
     ? trees.filter((t) => (t.title ?? "").toLowerCase().includes(searchQuery.toLowerCase()))
     : trees;
 
+  type TreeNodeViewProps = { node: TreeNode; level?: number; };
+
+  const TreeNodeView: React.FC<TreeNodeViewProps> = ({ node, level = 0 }) => {
+    const { resource, kind, title } = node;
+    if (isExcludedKind(resource?.kind)) return null;
+
+    const name = resource?.metadata?.name ?? resource?.name;
+    const key = mkKey(resource?.kind, name);
+
+    const hasLazyChildren = Array.isArray(resource?.spec?.resourceRefs) && resource.spec.resourceRefs.length > 0;
+    const visibleChildren = node.children.filter(c => !isExcludedKind(c.resource?.kind));
+
+    const expanded = expandedKeys.has(key);
+    const isLoading = loadingKeys.has(key);
+
+    const handleToggle = async () => {
+      const next = !expanded;
+      if (next) {
+        // set expanded immediately so Collapse opens (prevents having to close/reopen)
+        setExpandedKeys((prev) => {
+          const nextSet = new Set(prev);
+          nextSet.add(key);
+          return nextSet;
+        });
+
+        if (hasLazyChildren && visibleChildren.length === 0) {
+          await onExpandNode(node);
+        }
+      } else {
+        setExpandedKeys((prev) => {
+          const nextSet = new Set(prev);
+          nextSet.delete(key);
+          return nextSet;
+        });
+      }
+    };
+
+    return (
+      <Box sx={{ ml: level * 3, mt: 1 }}>
+        <Paper variant="outlined" sx={{ p: 1 }}>
+          <Stack direction="row" alignItems="center" justifyContent="space-between">
+            <Stack direction="row" spacing={2} alignItems="center">
+              <Box>
+                <Typography variant={level === 0 ? "subtitle1" : "body1"} sx={{ fontWeight: level === 0 ? 700 : 600 }}>
+                  {kind}
+                </Typography>
+                <Typography variant="caption" color="text.secondary">
+                  {title}
+                </Typography>
+              </Box>
+              <StatusChips resource={resource} />
+            </Stack>
+
+            <Stack direction="row" spacing={1} alignItems="center">
+              <Button size="small" variant="outlined" startIcon={<InfoIcon />} onClick={() => onItemClick(resource)}>
+                Details
+              </Button>
+
+              {(visibleChildren.length > 0 || hasLazyChildren) && (
+                <IconButton size="small" onClick={handleToggle} aria-label={expanded ? "collapse" : "expand"} aria-expanded={expanded}>
+                  {/* Correct icon mapping: when expanded -> show ExpandLess (collapse icon), when collapsed -> show ExpandMore */}
+                  {expanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+                </IconButton>
+              )}
+            </Stack>
+          </Stack>
+
+          {hasLazyChildren && visibleChildren.length === 0 && !isLoading && (
+            <Box sx={{ mt: 1, ml: 1 }}>
+              <Typography variant="caption" color="text.secondary">
+                Click expand to load {resource.spec.resourceRefs.length} child(ren)...
+              </Typography>
+            </Box>
+          )}
+
+          <Collapse in={expanded}>
+            <Box sx={{ mt: 1 }}>
+              {isLoading && visibleChildren.length === 0 ? (
+                <Box sx={{ ml: 2 }}>
+                  <Paper variant="outlined" sx={{ p: 1, display: "flex", alignItems: "center", gap: 1 }}>
+                    <CircularProgress size={18} />
+                    <Typography variant="body2" color="text.secondary">Loading child(ren)...</Typography>
+                  </Paper>
+                </Box>
+              ) : visibleChildren.length > 0 ? (
+                <Box sx={{ mt: 1 }}>
+                  {visibleChildren.map((child) => {
+                    const childRes = child.resource;
+                    const childName = childRes?.metadata?.name ?? childRes?.name ?? child.title;
+                    const childKind = childRes?.kind ?? child.kind;
+                    const childKey = mkKey(childKind, childName);
+                    return <TreeNodeView key={childKey} node={child} level={level + 1} />;
+                  })}
+                </Box>
+              ) : null}
+            </Box>
+          </Collapse>
+        </Paper>
+      </Box>
+    );
+  };
+
   return (
     <>
       <HeaderBar title="Composite Resources" />
       <PageBody>
         <Stack direction="row" spacing={2} sx={{ mb: 2 }} alignItems="center">
           <Chip sx={{ p: 0 }} label={loading ? "syncing" : "synced"} icon={loading ? <CircularProgress size={20} /> : <CheckCircleIcon />} />
-          <Input
-            className="w-full"
-            type="text"
-            placeholder="Search by name"
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-          />
+          <Input className="w-full" type="text" placeholder="Search by name" value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
           <Box sx={{ flex: "0 0 auto" }}>
-            <Button variant="outlined" startIcon={<RefreshIcon />} onClick={() => void fetchAll()} disabled={loading}>
-              Refresh
-            </Button>
+            <Button variant="outlined" startIcon={<RefreshIcon />} onClick={() => void fetchAll()} disabled={loading}>Refresh</Button>
           </Box>
         </Stack>
 
@@ -797,34 +689,16 @@ const CompositeResourcesPage = () => {
               const tKey = mkKey(tKind, tName);
               return (
                 <Box key={tKey}>
-                  <TreeNodeView
-                    node={t}
-                    onItemClick={onItemClick}
-                    onExpand={onExpandRoot}
-                    level={0}
-                    isLoading={loadingRoots.has(tKey)}
-                  />
+                  <TreeNodeView node={t} level={0} />
                 </Box>
               );
             })
           )}
         </Stack>
 
-        <InfoDrawer
-          // use a stable key based on kind|name so infodrawer doesn't remount unnecessarily and cause scroll/focus jumps
-          key={focused ? mkKey(focused.kind, focused.metadata?.name ?? focused.name) : "infodrawer"}
-          isOpen={isDrawerOpen}
-          onClose={onCloseDrawer}
+        <InfoDrawer key={focused ? mkKey(focused.kind, focused.metadata?.name ?? focused.name) : "infodrawer"} isOpen={isDrawerOpen} onClose={onCloseDrawer}
           type={focused?.kind ? "Composite Resource" : "Resource"}
-          title={focused ? (
-            <>
-              {focused.metadata?.name ?? focused.name ?? "Details"}
-              <Box sx={{ ml: 1, display: "inline-block" }}>
-                {focused?.status && <ConditionChips status={focused.status ?? {}} />}
-              </Box>
-            </>
-          ) : "Details"}
-        >
+          title={focused ? (<>{focused.metadata?.name ?? focused.name ?? "Details"}<Box sx={{ ml: 1, display: "inline-block" }}>{focused?.status && <ConditionChips status={focused.status ?? {}} />}</Box></>) : "Details"}>
           <InfoTabs bridge={bridge} initial="yaml" />
         </InfoDrawer>
       </PageBody>
