@@ -112,7 +112,7 @@ function ZoneBlockCompact({
             <List dense>
               {(instanceOfferings || []).map((it, idx) => {
                 const name = it.nameLabel ?? it.name ?? shortText(it);
-                const specs = `${it.vcpus ? `${it.vcpus} vCPU` : ""}${it.ram ? ` ${it.ram}` : ""}${it.price ? ` • ${it.price}` : ""}`;
+                const specs = `${it.name}: ${it.price ? `${it.price} $/h` : ""}`;
                 return (
                   <MUIListItem key={idx}>
                     <ListItemText primary={`${name}`} secondary={specs} />
