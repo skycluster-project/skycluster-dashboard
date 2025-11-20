@@ -2,15 +2,32 @@
 import InfoIcon from '@mui/icons-material/Info';
 import CloudDownloadIcon from '@mui/icons-material/CloudDownload';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-import {Stack, Card, Chip, CardContent, Grid, Box, Typography, CircularProgress, Divider, Button, Accordion, AccordionSummary, AccordionDetails, List, ListItem as MUIListItem, ListItemText} from '@mui/material';
+import {
+  Stack,
+  Card,
+  Chip,
+  CardContent,
+  Grid,
+  Box,
+  Typography,
+  CircularProgress,
+  Divider,
+  Button,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails,
+  List,
+  ListItem as MUIListItem,
+  ListItemText
+} from '@mui/material';
 import ReadySynced from "./ReadySynced.tsx";
 import { useState } from "react";
-import InfoTabs, {ItemContext} from "./InfoTabs.tsx";
+import InfoTabs, { ItemContext } from "./InfoTabs.tsx";
 import ConditionChips from "./ConditionChips.tsx";
 import InfoDrawer from "./InfoDrawer.tsx";
-import {useNavigate, useParams} from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import apiClient from "../api.ts";
-import {ProviderProfile, ItemList, K8sResource, ImageOffering, InstanceOffering} from "../types.ts";
+import { ProviderProfile, ItemList, K8sResource, ImageOffering, InstanceOffering } from "../types.ts";
 
 type ItemProps = {
   item: ProviderProfile;
@@ -38,6 +55,49 @@ function groupByZone<T extends { zone?: string }>(items?: T[]) {
   return map;
 }
 
+/**
+ * Parse a price value into a number for accurate sorting.
+ * Non-numeric or missing values are treated as Infinity so they sort last.
+ */
+function parsePriceValue(val: any): number {
+  if (val === null || val === undefined) return Infinity;
+  // If it's already a number, return it
+  if (typeof val === "number") {
+    return isFinite(val) ? val : Infinity;
+  }
+  // Try to coerce strings like "0.12" or "$0.12" to numbers
+  const cleaned = String(val).replace(/[^\d.\-]/g, "");
+  const n = Number(cleaned);
+  return isFinite(n) ? n : Infinity;
+}
+
+/**
+ * Compare two InstanceOffering entries by price (ascending), then by spot price.
+ * Offerings without a spot price will sort after those with a spot price.
+ */
+function compareInstanceOfferings(a: InstanceOffering, b: InstanceOffering): number {
+  const aPrice = parsePriceValue(a.price);
+  const bPrice = parsePriceValue(b.price);
+  if (aPrice < bPrice) return -1;
+  if (aPrice > bPrice) return 1;
+  
+  const aSpot = parsePriceValue(a.spot?.price);
+  const bSpot = parsePriceValue(b.spot?.price);
+  if (aSpot < bSpot) return -1;
+  if (aSpot > bSpot) return 1;
+
+  // As a final tiebreaker, compare by name (stable)
+  const aName = (a.nameLabel ?? a.name ?? "").toString();
+  const bName = (b.nameLabel ?? b.name ?? "").toString();
+  return aName.localeCompare(bName);
+}
+
+/**
+ * CompactList
+ * Renders up to `max` items using the provided `renderItem` function.
+ * renderItem should return the inner content (not an <MUIListItem />) because
+ * CompactList will wrap it into <MUIListItem>.
+ */
 function CompactList({ items, renderItem, max = 3 }: { items?: any[]; renderItem: (it: any, idx: number) => JSX.Element; max?: number }) {
   if (!items || items.length === 0) {
     return <Typography variant="body2" color="text.secondary">—</Typography>;
@@ -50,6 +110,72 @@ function CompactList({ items, renderItem, max = 3 }: { items?: any[]; renderItem
         <Typography variant="body2" color="text.secondary">{items.length - max} more…</Typography>
       </MUIListItem>}
     </List>
+  );
+}
+
+/**
+ * InstanceOfferingView
+ * Modular component that renders the contents for an InstanceOffering.
+ * It renders the same style whether used in compact or expanded views.
+ * Return value is suitable to be placed inside a <MUIListItem>.
+ */
+function InstanceOfferingView({ offering }: { offering: InstanceOffering }) {
+  const name = offering.nameLabel ?? offering.name ?? shortText(offering);
+
+  return (
+    <ListItemText
+      primary={name}
+      secondary={
+        <Box sx={{ display: "flex", gap: 1, alignItems: "center", mt: 0.3, flexWrap: 'wrap' }}>
+          {/* On-Demand Price */}
+          {offering.price ? (
+            <Box
+              component="span"
+              sx={{
+                px: 1, py: 0.2, borderRadius: "999px",
+                bgcolor: "#f1be47", color: "black", fontSize: "0.75rem",
+                fontWeight: 600,
+              }}
+            >
+              {offering.price} $/h
+            </Box>
+          ) : (
+            <Box component="span" sx={{ fontSize: "0.75rem", opacity: 0.7 }}>
+              -
+            </Box>
+          )}
+
+          {/* Separator */}
+          <Box component="span" sx={{ opacity: 0.6, fontSize: "0.75rem" }}>
+            |
+          </Box>
+
+          {/* SPOT Label */}
+          <Box component="span" sx={{ opacity: 0.7, fontSize: "0.75rem" }}>
+            SPOT:
+          </Box>
+
+          {/* SPOT Price */}
+          <Box
+            component="span"
+            sx={{
+              px: 1, py: 0.2, borderRadius: "999px",
+              bgcolor: offering.spot?.price ? "#8ed1eb" : "grey.500", color: "black",
+              fontSize: "0.75rem", fontWeight: 600,
+            }}
+          >
+            {offering.spot?.price ? `${offering.spot.price} $/h` : "-"}
+          </Box>
+
+          {/* Optional technical specs */}
+          {(offering.vcpus || offering.ram) && (
+            <Box component="span" sx={{ marginLeft: 1, fontSize: "0.8rem", color: "text.secondary" }}>
+              {offering.vcpus ? `${offering.vcpus} vCPU` : ""}{offering.vcpus && offering.ram ? " • " : ""}{offering.ram ?? ""}
+            </Box>
+          )}
+        </Box>
+      }
+    />
   );
 }
 
@@ -71,6 +197,10 @@ function ZoneBlockCompact({
   onToggleInstances: () => void;
 }) {
   const small = 3;
+
+  // Sort instance offerings by spot price then demand price
+  const sortedInstances = (instanceOfferings || []).slice().sort(compareInstanceOfferings);
+
   return (
     <Box sx={{ mt: 1, mb: 1 }}>
 
@@ -110,21 +240,21 @@ function ZoneBlockCompact({
           <Typography variant="caption" color="text.secondary">Instance offerings</Typography>
           {showAllInstances ? (
             <List dense>
-              {(instanceOfferings || []).map((it, idx) => {
-                const name = it.nameLabel ?? it.name ?? shortText(it);
-                const specs = `${it.name}: ${it.price ? `${it.price} $/h` : ""}`;
+              {sortedInstances.map((it, idx) => {
                 return (
                   <MUIListItem key={idx}>
-                    <ListItemText primary={`${name}`} secondary={specs} />
+                    {/* Use the modular InstanceOfferingView inside the list item */}
+                    <InstanceOfferingView offering={it} />
                   </MUIListItem>
                 );
               })}
             </List>
           ) : (
-            <CompactList items={instanceOfferings} max={small} renderItem={(it: InstanceOffering, idx: number) => {
-              const name = it.nameLabel ?? it.name ?? shortText(it);
-              const specs = `${it.vcpus ? `${it.vcpus} vCPU` : ""}${it.ram ? ` ${it.ram}` : ""}${it.price ? ` • ${it.price}$/h` : ""}`;
-              return <ListItemText primary={`${name}`} secondary={specs} />;
+            <CompactList items={sortedInstances} max={small} renderItem={(it: InstanceOffering, idx: number) => {
+              // CompactList will wrap this returned element in <MUIListItem />
+              // We return the SAME InstanceOfferingView so collapsed and expanded
+              // sections have identical style and format.
+              return <InstanceOfferingView offering={it} />;
             }} />
           )}
           {instanceOfferings && instanceOfferings.length > small && (
@@ -138,9 +268,9 @@ function ZoneBlockCompact({
   );
 }
 
-function ListItem({item: initialItem, onItemClick}: ItemProps) {
+function ListItem({ item: initialItem, onItemClick }: ItemProps) {
   const [item] = useState<ProviderProfile>(initialItem);
-  const [deps, setDeps] = useState<{images?: ImageOffering[], instanceTypes?: InstanceOffering[]}|null>(() => {
+  const [deps, setDeps] = useState<{ images?: ImageOffering[], instanceTypes?: InstanceOffering[] } | null>(() => {
     if (initialItem.dependencies) {
       return {
         images: (initialItem.dependencies.images as unknown) as ImageOffering[] | undefined,
@@ -188,7 +318,7 @@ function ListItem({item: initialItem, onItemClick}: ItemProps) {
   const zonesSet = new Set<string>();
   for (const k of imagesByZone.keys()) zonesSet.add(k);
   for (const k of instancesByZone.keys()) zonesSet.add(k);
-  const zones = Array.from(zonesSet).sort((a,b) => {
+  const zones = Array.from(zonesSet).sort((a, b) => {
     if (a === "unknown") return 1;
     if (b === "unknown") return -1;
     return a.localeCompare(b);
@@ -207,16 +337,16 @@ function ListItem({item: initialItem, onItemClick}: ItemProps) {
   };
 
   return (
-    <Grid item sx={{mb: 1}} m={1} xs={12} md={12} key={item.apiVersion + item.kind + item.metadata.name}>
+    <Grid item sx={{ mb: 1 }} m={1} xs={12} md={12} key={item.apiVersion + item.kind + item.metadata.name}>
       <Card variant="outlined">
         <CardContent>
-          <Box sx={{display: 'flex', flexDirection: 'row', p: 0, m: 0, justifyContent: 'space-between', alignItems: 'center'}}>
+          <Box sx={{ display: 'flex', flexDirection: 'row', p: 0, m: 0, justifyContent: 'space-between', alignItems: 'center' }}>
             <Box>
               <Typography variant="h6">{item.metadata.name}</Typography>
               <Typography variant="body2" color="text.secondary">{item.spec?.description ?? ""}</Typography>
             </Box>
 
-            <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <ReadySynced status={item.status ? item.status : {}} />
               <>
                 <Chip icon={<InfoIcon />} label="Details" variant="outlined" color="info"
@@ -225,18 +355,18 @@ function ListItem({item: initialItem, onItemClick}: ItemProps) {
             </Box>
           </Box>
 
-          <Typography variant="body2" sx={{mt: 1}}>Kind: {item.kind}</Typography>
+          <Typography variant="body2" sx={{ mt: 1 }}>Kind: {item.kind}</Typography>
 
           {deps ? (
             zones.length === 0 ? (
-              <Typography variant="body2" color="text.secondary" sx={{mt:1}}>No dependency data</Typography>
+              <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>No dependency data</Typography>
             ) : (
               <Box sx={{ mt: 1 }}>
                 <Divider sx={{ mb: 1 }} />
                 {zones.map(zone => (
                   <Accordion key={zone} expanded={!!expandedZones[zone]} onChange={() => toggleZone(zone)}>
                     <AccordionSummary expandIcon={<ExpandMoreIcon />}>
-                      <Stack direction="row" spacing={1} alignItems="center" sx={{width: '100%', justifyContent: 'space-between'}}>
+                      <Stack direction="row" spacing={1} alignItems="center" sx={{ width: '100%', justifyContent: 'space-between' }}>
                         <Stack direction="row" spacing={1} alignItems="center">
                           <Typography variant="subtitle2">{zone}</Typography>
                           <Chip label={`Images: ${imagesByZone.get(zone)?.length ?? 0}`} size="small" />
@@ -263,7 +393,12 @@ function ListItem({item: initialItem, onItemClick}: ItemProps) {
               </Box>
             )
           ) : (
-            <Typography variant="body2" color="text.secondary" sx={{mt:1}}>Dependencies not loaded. Press "Load deps" to fetch.</Typography>
+            <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="body2" color="text.secondary">Dependencies not loaded. Press "Load deps" to fetch.</Typography>
+              <Button size="small" onClick={() => loadDeps(false)} disabled={loadingDeps}>
+                {loadingDeps ? <CircularProgress size={16} /> : "Load deps"}
+              </Button>
+            </Box>
           )}
         </CardContent>
       </Card>
@@ -275,17 +410,17 @@ type ItemListProps = {
   items: ItemList<ProviderProfile> | undefined;
 };
 
-export default function ProviderProfilesList({items}: ItemListProps) {
-  const {name: focusedName} = useParams();
+export default function ProviderProfilesList({ items }: ItemListProps) {
+  const { name: focusedName } = useParams();
   const [isDrawerOpen, setDrawerOpen] = useState<boolean>(focusedName != undefined);
-  const nullFocused = {metadata: {name: ""}, kind: "", apiVersion: ""} as K8sResource;
+  const nullFocused = { metadata: { name: "" }, kind: "", apiVersion: "" } as K8sResource;
   const [focused, setFocused] = useState<K8sResource>(nullFocused);
   const navigate = useNavigate();
 
   const onClose = () => {
     setDrawerOpen(false)
     setFocused(nullFocused)
-    navigate("/providerprofiles", {state: focused})
+    navigate("/providerprofiles", { state: focused })
   }
 
   const onItemClick = (item: K8sResource) => {
@@ -293,7 +428,7 @@ export default function ProviderProfilesList({items}: ItemListProps) {
     setDrawerOpen(true)
     navigate(
       "./" + item.apiVersion + "/" + item.metadata.name,
-      {state: item}
+      { state: item }
     );
   }
 
@@ -329,7 +464,7 @@ export default function ProviderProfilesList({items}: ItemListProps) {
         onClose={onClose}
         type="Provider Profile"
         title={<>{focused.metadata.name}<ConditionChips status={focused.status ? focused.status : {}}/></>}>
-          <InfoTabs bridge={bridge} initial="yaml"></InfoTabs>
+        <InfoTabs bridge={bridge} initial="yaml"></InfoTabs>
       </InfoDrawer>
     </>
   );
