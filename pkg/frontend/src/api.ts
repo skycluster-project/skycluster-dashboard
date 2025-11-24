@@ -1,21 +1,15 @@
 import {
     AppStatus,
-    Claim,
-    ClaimExtended,
     CompositeResource,
     CompositeResourceExtended,
-    Composition,
     ItemList,
     K8sEvent,
     ManagedResource,
     ManagedResourceExtended,
-    Provider,
-    ProviderConfig,
-    XRD,
+    ProviderProfile,
     CRD,
     CM,
     K8sResource,
-    SkyClusterResource
 } from "./types.ts";
 import {sendStatsToHeap} from "./utils.ts";
 
@@ -53,23 +47,9 @@ class APIClient {
         return data;
     }
 
-    getCustomResources = async (group: string, version: string, name: string) => {
-        const response = await this.innterFetch(`/api/crs/${group}/${version}/${name}`);
-        const data: ItemList<K8sResource> = await response.json();
-        return data;
-    };
-
-    getProviderList = async () => {
-        const response = await this.innterFetch(`/api/providers`);
-        const data: ItemList<Provider> = await response.json();
-        sendStatsToHeap('List Providers', {count: data.items.length});
-        return data;
-    };
-
-
-    getProvider = async (name: string) => {
-        const response = await this.innterFetch(`/api/providers/${name}`);
-        const data: Provider = await response.json();
+    getCustomResources = async (group: string, version: string, resource: string) => {
+        const response = await this.innterFetch(`/api/crs/${group}/${version}/${resource}`);
+        const data: ItemList<CompositeResourceExtended> = await response.json();
         return data;
     };
 
@@ -91,25 +71,6 @@ class APIClient {
         return data;
     };
 
-    getProviderConfigs = async (name: string) => {
-        const response = await this.innterFetch(`/api/providers/${name}/configs`);
-        const data: ItemList<ProviderConfig> = await response.json();
-        return data;
-    };
-
-    getClaimList = async () => {
-        const response = await this.innterFetch(`/api/claims`);
-        const data: ItemList<Claim> = await response.json();
-        sendStatsToHeap('List Claims', {count: data.items.length});
-        return data;
-    };
-
-    getClaim = async (group?: string, version?: string, kind?: string, namespace?: string, name?: string) => {
-        const response = await this.innterFetch(`/api/claims/` + group + "/" + version + "/" + kind + "/" + namespace + "/" + name + "?full=1");
-        const data: ClaimExtended = await response.json();
-        return data;
-    };
-
     getManagedResourcesList = async () => {
         const response = await this.innterFetch(`/api/managed`);
         const data: ItemList<ManagedResource> = await response.json();
@@ -123,16 +84,16 @@ class APIClient {
         return data;
     };
 
-    getSkyClusterResourcesList = async () => {
-        const response = await this.innterFetch(`/api/skycluster`);
-        const data: ItemList<SkyClusterResource> = await response.json();
-        sendStatsToHeap('List XRs', {count: data.items.length});
+    getProviderProfilesList = async () => {
+        const response = await this.innterFetch(`/api/providerprofiles`);
+        const data: ItemList<ProviderProfile> = await response.json();
+        sendStatsToHeap('List ProviderProfiles', {count: data.items.length});
         return data;
     };
 
-    getSkyClusterResource = async (group?: string, version?: string, kind?: string, name?: string) => {
-        const response = await this.innterFetch(`/api/SkyCluster/` + group + "/" + version + "/" + kind + "/" + name + "?full=1");
-        const data: SkyClusterResource = await response.json();
+    getProviderProfile = async (group?: string, version?: string, kind?: string, name?: string) => {
+        const response = await this.innterFetch(`/api/providerprofiles/` + group + "/" + version + "/" + kind + "/" + name + "?full=1");
+        const data: ProviderProfile = await response.json();
         return data;
     };
 
@@ -149,19 +110,26 @@ class APIClient {
         return data;
     };
 
-    getCompositionsList = async () => {
-        const response = await this.innterFetch(`/api/compositions`);
-        const data: ItemList<Composition> = await response.json();
-        sendStatsToHeap('List Compositions', {count: data.items.length});
+    getSystemComposites = async () => {
+        const response = await this.innterFetch(`/api/system`);
+        const data: ItemList<CompositeResource> = await response.json();
+        sendStatsToHeap('List System Composites', {count: data.items.length});
         return data;
     };
 
-    getXRDsList = async () => {
-        const response = await this.innterFetch(`/api/xrds`);
-        const data: ItemList<XRD> = await response.json();
-        sendStatsToHeap('List XRDs', {count: data.items.length});
-        return data;
-    };
+    // getCompositionsList = async () => {
+    //     const response = await this.innterFetch(`/api/compositions`);
+    //     const data: ItemList<Composition> = await response.json();
+    //     sendStatsToHeap('List Compositions', {count: data.items.length});
+    //     return data;
+    // };
+
+    // getXRDsList = async () => {
+    //     const response = await this.innterFetch(`/api/xrds`);
+    //     const data: ItemList<XRD> = await response.json();
+    //     sendStatsToHeap('List XRDs', {count: data.items.length});
+    //     return data;
+    // };
 
     getStatus = async () => {
         const response = await this.innterFetch(`/status`);

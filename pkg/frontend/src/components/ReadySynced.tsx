@@ -1,29 +1,29 @@
-import {Status} from "../types.ts";
-import {Chip} from "@mui/material";
+import React from "react";
+import { Status } from "../types";
+import Stack from "@mui/material/Stack";
+import Chip from "@mui/material/Chip";
+import CheckCircleIcon from "@mui/icons-material/CheckCircle";
 
-type HealthStatusProps = {
-    status: Status;
-};
+const isConditionTrue = (status?: Status, type?: string) =>
+  (status?.conditions ?? []).some((c: any) => c.type === type && c.status === "True");
 
-export default function ReadySynced({status}: HealthStatusProps) {
-    let ready = <></>
-    let synced = <></>
-    status.conditions?.forEach((element) => {
-        if (element.type == "Ready") {
-            ready = <Chip className="me-2" label={(element.status == "True" ? "" : "Not ") + "Ready"} title={element.reason}
-                          color={(element.status == "True" ? "success" : "error")}></Chip>
-        }
+export default function ReadySynced({ status }: { status?: Status }) {
+  const ready = isConditionTrue(status, "Ready");
+  const synced = isConditionTrue(status, "Synced");
 
-        if (element.type == "Synced") {
-            synced = <Chip className="me-2" label={(element.status == "True" ? "" : "Not ") + "Synced"} title={element.reason}
-                           color={(element.status == "True" ? "primary" : "warning")}></Chip>
-        }
-    });
-
-    return (
-        <>
-            {synced}
-            {ready}
-        </>
-    );
+  return (
+    <Stack direction="row" spacing={1} alignItems="center">
+      <Chip
+        size="small"
+        label={ready ? "Ready" : "Not Ready"}
+        color={ready ? "success" : "default"}
+        icon={ready ? <CheckCircleIcon /> : undefined}
+      />
+      <Chip
+        size="small"
+        label={synced ? "Synced" : "Not Synced"}
+        color={synced ? "info" : "default"}
+      />
+    </Stack>
+  );
 }

@@ -31,7 +31,7 @@ function CMListItem({item, onItemClick}: CMListItemProps) {
     const providerRegionAlias = item.metadata.labels?.["skycluster.io/provider-region-alias"];
     const providerZone = item.metadata.labels?.["skycluster.io/provider-zone"];
     const providerLocName = item.metadata.labels?.["skycluster.io/provider-loc-name"];
-    const itemEnabled = item.data?.["enabled"] ?? "false";
+    const itemEnabled = item.metadata.labels?.["skycluster.io/provider-enabled"] ?? 'false';
     let pLocName = providerLocName? "\n" + providerLocName : "";
 
     return (
@@ -128,8 +128,9 @@ export default function CMList({items}: CMListProps) {
         const pLocNameSelector = "skycluster.io/provider-loc-name"
         const pRegionSelector = "skycluster.io/provider-region"
         const pTypeSelector = "skycluster.io/provider-type"
-        const itemEnabled = item.data?.["enabled"] ?? "false";
+        const pEnabledSelector = "skycluster.io/provider-enabled"
         const pRegionAliasSelector = "skycluster.io/provider-region-alias"
+        let itemEnabled = item.metadata?.labels?.[pEnabledSelector] ?? 'false';
         let configType = item.metadata?.labels?.[pConfigType] ?? 'NoType';
         let providerType = item.metadata?.labels?.[pTypeSelector];
         let providerName = item.metadata?.labels?.[pNameSelector] ?? "";
@@ -159,6 +160,7 @@ export default function CMList({items}: CMListProps) {
         const pTypeSelector = "skycluster.io/provider-type"
         const pZoneSelector = "skycluster.io/provider-zone"
         const pRegionAliasSelector = "skycluster.io/provider-region-alias"
+        const pEnabledSelector = "skycluster.io/provider-enabled"
         let configType = item.metadata?.labels?.[pConfigType] ?? 'NoType';
         
         // check if configType is "provider-mappings" and if so append the provider-name
@@ -174,8 +176,9 @@ export default function CMList({items}: CMListProps) {
             
             const regionalItemEnabled = providerRegions[providerName + providerRegion].enabled
             if (regionalItemEnabled == "false") {
-                // set the data.enabled to false
-                item.data["enabled"] = "false"
+                // set the metadata.label.enabled to false
+                item.metadata.labels = item.metadata.labels ?? {};
+                item.metadata.labels[pEnabledSelector] = "false";
             }
 
             // Construct the configs for this provider (e.g. provider-mappings-aws)
@@ -202,7 +205,7 @@ export default function CMList({items}: CMListProps) {
                     regionAlias: providerRegionAlias,
                     zone: providerZone,
                     type: providerType,
-                    enabled: item.data["enabled"],
+                    enabled: item.metadata.labels?.[pEnabledSelector] ?? 'false',
                 });
             }
 

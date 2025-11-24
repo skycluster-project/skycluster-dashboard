@@ -50,26 +50,109 @@ export type K8sResource = {
     status?: Status
 }
 
-// export type SkyClusterResource = K8sResource & {
-//     spec?: {
-//         vservicecosts?: {
-//             providerReference: {
-//                 name: string
-//                 region: string
-//                 type: string
-//             }
-//         }[]
-//         vserviceCompositions?: {
-//             apiVersion: string
-//             kind: string
-//         }[]
-//     }
-//     status?: {
-//         // For ILP Task
-//         result?: string
-//         solution?: string
-//     }
-// }
+export type ImageOffering = {
+  nameLabel?: string;
+  pattern?: string;
+  name?: string;
+  generation?: string;
+  zone?: string;
+  [key: string]: any;
+};
+
+export type InstanceOffering = {
+  name?: string;
+  nameLabel?: string;
+  vcpus?: number;
+  ram?: string;
+  price?: string;
+  gpu?: {
+    enabled?: boolean;
+    manufacturer?: string;
+    count?: number;
+    model?: string;
+    unit?: string;
+    memory?: string;
+  };
+  generation?: string;
+  volumeTypes?: string[];
+  spot?: {
+    price?: string;
+    enabled?: boolean;
+  };
+  zone?: string; // added by backend when flattening
+  instanceTypeName?: string; // added by backend to reference the parent InstanceType
+  [key: string]: any;
+};
+
+export type XSetupStatus = Status & {
+  apiServer?: string;
+  ca?: {
+    certificate?: string;
+    secretName?: string;
+    secretNamespace?: string;
+  };
+  headscale?: {
+    connectionSecretName?: string;
+    loginUrl?: string;
+    token?: string;
+  };
+  istio?: {
+    rootCASecretName?: string;
+  };
+  keypair?: {
+    publicKey?: string;
+    secretName?: string;
+    secretNamespace?: string;
+  };
+  namespace?: string;
+  providerConfig?: {
+    helm?: { name?: string };
+    kubernetes?: { name?: string };
+    [key: string]: any;
+  };
+  submariner?: {
+    connectionSecretName?: string;
+    [key: string]: any;
+  };
+  // allow additional fields
+  [key: string]: any;
+};
+
+export type XSetup = CompositeResource & {
+  status?: XSetupStatus;
+};
+
+export type XOverlayStatus = Status & {
+  connectionSecretName?: string;
+  namespace?: string;
+  // allow additional fields
+  [key: string]: any;
+};
+
+export type XOverlay = CompositeResource & {
+  status?: XOverlayStatus;
+};
+
+export type ProviderProfile = K8sResource & {
+  spec?: {
+    description?: string;
+    providerReference?: {
+      name?: string;
+      region?: string;
+      type?: string;
+    };
+    credentials?: {
+      secretRef?: Reference;
+    };
+    config?: { [key: string]: any };
+    [key: string]: any;
+  };
+  dependencies?: {
+    images?: ImageOffering[]; // from images.status.images
+    instanceTypes?: InstanceOffering[]; // flattened from instancetype.status.offerings
+    combinedConfigSummary?: { [key: string]: any };
+  };
+};
 
 export type CM = K8sResource & {
     data: { [key: string]: string }
@@ -141,8 +224,8 @@ export type ManagedResourceExtended = ManagedResource & {
 export type CompositeResource = K8sResource & {
     spec: {
         claimRef?: Reference
-        compositionRef?: Reference
-        resourceRefs: Reference[]
+        compositionRef?: K8sReference
+        resourceRefs: K8sReference[]
     }
     status?: Status
 }
