@@ -17,7 +17,7 @@ pull: ; $(info $(M) Pulling source...) @
 build_go: $(BIN) ; $(info $(M) Building GO...) @ ## Build program binary
 	go build \
 		-ldflags '-X main.version=$(VERSION) -X main.buildDate=$(DATE)' \
-		-o bin/komoplane .
+		-o bin/skycluster-dashboard .
 
 .PHONY: build_ui
 build_ui: $(BIN) ; $(info $(M) Building UI...) @ ## Build program binary
@@ -28,4 +28,4 @@ build: build_ui build_go ; $(info $(M) Building executable...) @ ## Build progra
 
 .PHONY: debug
 debug: build ; $(info $(M) Running in debug mode...) @
-	@DEBUG=1 ./bin/komoplane
+	@DEBUG=1 ./bin/skycluster-dashboard

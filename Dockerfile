@@ -49,8 +49,8 @@ ARG BUILDPLATFORM
 
 EXPOSE 8090
 
-COPY --from=builder /build/bin/komoplane /bin/komoplane
+COPY --from=builder /build/bin/skycluster-dashboard /bin/skycluster-dashboard
 
-ENTRYPOINT ["/bin/komoplane", "--bind=0.0.0.0", "--port=8090"]
+ENTRYPOINT ["/bin/skycluster-dashboard", "--bind=0.0.0.0", "--port=8090"]
 
-# docker build . -t komodorio/komoplane:0.0.0 && kind load docker-image komodorio/komoplane:0.0.0
+# docker build . -t komodorio/skycluster-dashboard:0.0.0 && kind load docker-image komodorio/skycluster-dashboard:0.0.0
